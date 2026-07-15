@@ -3,63 +3,22 @@
 <head>
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0'>
-    <title>HoneyShop - Админ панел</title>
+    <title>HoneyShop - Управление на поръчки</title>
     <link rel='stylesheet' th:href="@{/css/style.css}">
 </head>
 <body>
 <div class='top-strip'>🐝 Добре дошли в HoneyShop — натурален мед и пчелни продукти</div>
-<header class='site-header'>
-    <div class='container header-inner'>
-        <a th:href="@{/index}" class='logo'>HoneyShop<span></span></a>
-        <nav class='main-nav'>
-            <a class='nav-link ' th:href="@{/index}">Начало</a>
-            <a class='nav-link ' th:href="@{/products}">Магазин</a>
-            <a class='nav-link ' th:href="@{/cart}">Количка</a>
-            <a class='nav-link ' th:href="@{/profile}">Моят профил</a>
-            <a class='nav-link active' th:if="${isAdmin}" th:href="@{/admin}">Админ</a>
-        </nav>
-        <div class='header-actions'>
-            <a class='action-pill dark' th:href="@{/login}">Вход</a>
-            <a class='action-pill' th:href="@{/register}">Регистрирай се</a>
-            <a class='cart-pill' th:href="@{/cart}"><span class='cart-icon'>🛒</span> 0</a>
-        </div>
+<header class="site-header">
+    <div th:with="activePage='admin-orders'"
+         th:replace="~{fragments/navigation_bar :: nav-bar}">
     </div>
 </header>
 <section class='page-hero'>
-    <div class='container'><h1>Админ панел</h1>
-        <p>Минимална администрация за управление на продукти и поръчки.</p></div>
+    <div class='container'><h1>Управление на поръчки</h1>
+        <p>Преглед и промяна на статуса на поръчките.</p></div>
 </section>
 <section class='section'>
     <div class='container'>
-        <div class='table-card'><h2>Продукти</h2>
-            <p style='margin-bottom:18px;'><a class='btn' th:href="@{/product-create}">Добави продукт</a> <a
-                    class='btn light' th:href="@{/admin-products}">Виж създадените продукти</a></p>
-            <div class='table-responsive'>
-                <table>
-                    <thead>
-                    <tr>
-                        <th>Име</th>
-                        <th>Цена</th>
-                        <th>Наличност</th>
-                        <th>Действия</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr th:each="product : ${products}">
-                        <td th:text="${product.name}">Акациев мед</td>
-                        <td th:text="${product.price}">12.00 лв.</td>
-                        <td th:text="${product.items}">15 бр.</td>
-                        <td>
-                            <a class='btn light' th:href="@{/products/{id}/update(id=${product.id})}">Редактирай</a>
-                            <form th:action="@{/products/{id}/delete(id=${product.id})}" method="post" style="display: inline;">
-                                <button class='btn dark' type="submit">Изтрий</button>
-                            </form>
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-        </div>
         <div class='table-card'><h2>Поръчки</h2>
             <div class='table-responsive'>
                 <table>
@@ -67,6 +26,7 @@
                     <tr>
                         <th>№</th>
                         <th>Клиент</th>
+                        <th>Email</th>
                         <th>Дата</th>
                         <th>Статус</th>
                         <th>Сума</th>

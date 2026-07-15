@@ -11,6 +11,7 @@ import app.repository.cartitem.CartItemRepository;
 import app.repository.product.ProductRepository;
 import app.web.dto.cart.AddToCartRequest;
 import app.web.dto.cart.CartItemResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -18,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class CartService {
 
@@ -85,6 +87,14 @@ public class CartService {
         }
 
         CartItem savedCartItem = cartItemRepository.save(cartItem);
+        log.info(
+                "Product added to cart: userId={}, productId={}, " +
+                        "addedQuantity={}, totalQuantity={}",
+                user.getId(),
+                product.getId(),
+                request.getQuantity(),
+                savedCartItem.getQuantity()
+        );
         return mapToCartItemResponse(savedCartItem);
     }
 
@@ -104,6 +114,12 @@ public class CartService {
             throw new UnauthorizedActionException("Cart item does not belong to current user");
         }
         cartItemRepository.delete(cartItem);
+        log.info(
+                "Cart item removed: userId={}, cartItemId={}, productId={}",
+                user.getId(),
+                cartItem.getId(),
+                cartItem.getProduct().getId()
+        );
     }
 
     public void clearCart(User user){
@@ -111,6 +127,10 @@ public class CartService {
             throw new UnauthorizedActionException("User must be logged in.");
         }
         cartItemRepository.deleteAllByUser(user);
+        log.info(
+                "Cart cleared: userId={}",
+                user.getId()
+        );
     }
 
     private CartItemResponse mapToCartItemResponse(CartItem cartItem){

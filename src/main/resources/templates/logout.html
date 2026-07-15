@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang='bg' xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset='UTF-8'>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0'>
+    <title>HoneyShop - Изход</title>
+    <link rel='stylesheet' th:href="@{/css/style.css}">
+</head>
+<body>
+<div class='top-strip'>🐝 Добре дошли в HoneyShop — натурален мед и пчелни продукти</div>
+<header class="site-header">
+    <div class="container header-inner">
+        <a th:href="@{/index}" class="logo">HoneyShop<span></span></a>
+        <nav class="main-nav">
+            <a class="nav-link" th:href="@{/index}">Начало</a>
+            <a class="nav-link" th:href="@{/products}">Магазин</a>
+        </nav>
+
+        <div class="header-actions">
+            <a class="action-pill dark" th:href="@{/login}">Вход</a>
+            <a class="action-pill" th:href="@{/register}">Регистрирай се</a>
+        </div>
+    </div>
+</header>
+
+<section class='logout-page'>
+    <div class='container'>
+        <div class='logout-card'>
+            <div class='logout-icon'>🐝</div>
+            <h1>Успешно излязохте от профила си</h1>
+            <p>Вашата сесия е прекратена. Можете да влезете отново или да се върнете към началната страница.</p>
+
+            <div class='logout-actions'>
+                <a class='btn' th:href="@{/login}">Вход отново</a>
+                <a class='btn light' th:href="@{/index}">Към началната страница</a>
+                <a class='btn dark' th:href="@{/products}">Към магазина</a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<footer class='site-footer'><p>&copy; 2026 HoneyShop. Всички права запазени.</p></footer>
+</body>
+</html>

@@ -9,11 +9,14 @@
 <body>
 <div class='top-strip'>🐝 Добре дошли в HoneyShop — натурален мед и пчелни продукти</div>
 <header class='site-header'>
-    <div class='container header-inner'><a th:href="@{/index}" class='logo'>HoneyShop<span></span></a>
-        <nav class='main-nav'><a class='nav-link active' th:href="@{/index}">Начало</a><a class='nav-link '
-                                                                                          th:href="@{/products}">Магазин</a><a
-                class='nav-link ' th:href="@{/cart}">Количка</a><a class='nav-link ' th:href="@{/profile}">Моят профил</a><a
-                class='nav-link ' th:if="${isAdmin}" th:href="@{/admin}">Админ</a></nav>
+    <div class='container header-inner'>
+        <a th:href="@{/index}" class='logo'>HoneyShop<span></span></a>
+        <nav class='main-nav'>
+            <a class='nav-link active' th:href="@{/index}">Начало</a>
+            <a class='nav-link ' th:href="@{/products}">Магазин</a>
+            <a class='nav-link ' th:href="@{/cart}">Количка</a>
+            <a class='nav-link ' th:href="@{/profile}">Моят профил</a>
+        </nav>
         <div class='header-actions'><a class='action-pill dark' th:href="@{/login}">Вход</a><a class='action-pill'
                                                                                              th:href="@{/register}">Регистрирай
             се</a><a class='cart-pill' th:href="@{/cart}"><span class='cart-icon'>🛒</span> 0</a></div>

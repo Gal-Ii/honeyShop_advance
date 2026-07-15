@@ -13,6 +13,7 @@ import app.repository.orderitem.OrderItemRepository;
 import app.web.dto.order.OrderItemResponse;
 import app.web.dto.order.OrderResponse;
 import app.web.dto.order.UpdateOrderStatusRequest;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class OrderService {
 
@@ -100,7 +102,13 @@ public class OrderService {
 
         orderItemRepository.saveAll(orderItems);
         cartItemRepository.deleteAllByUser(user);
-
+        log.info(
+                "Order created: orderId={}, userId={}, totalPrice={}, itemCount={}",
+                savedOrder.getId(),
+                user.getId(),
+                savedOrder.getTotalPrice(),
+                orderItems.size()
+        );
         return savedOrder;
     }
 
@@ -163,10 +171,18 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new InvalidOrderDataException("Order does not exist"));
 
+        OrderStatus oldStatus = order.getStatus();
+
         order.setStatus(request.getStatus());
         order.setUpdatedOn(LocalDateTime.now());
 
         Order savedOrder = orderRepository.save(order);
+        log.info(
+                "Order status updated: orderId={}, oldStatus={}, newStatus={}",
+                savedOrder.getId(),
+                oldStatus,
+                savedOrder.getStatus()
+        );
 
         return mapToOrderResponse(savedOrder);
     }

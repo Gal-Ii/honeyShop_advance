@@ -3,8 +3,9 @@ package app.service;
 import app.exception.*;
 import app.model.entity.user.Gender;
 import app.model.entity.user.Country;
-import app.web.dto.user.LoginRequest;
-import jakarta.servlet.http.HttpSession;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.stereotype.Service;
 import app.model.entity.user.User;
 import app.model.entity.user.UserProperties;
@@ -12,23 +13,25 @@ import app.model.entity.user.UserRole;
 import app.repository.user.UserRepository;
 import app.web.dto.user.RegisterRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.authentication.AnonymousAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
-    private final HttpSession session;
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, HttpSession session) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
-        this.session = session;
     }
 
     public User register(RegisterRequest registerRequest){
@@ -61,7 +64,15 @@ public class UserService {
                 .updatedOn(LocalDateTime.now())
                 .build();
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        log.info(
+                "User registered: userId={}, role={}",
+                savedUser.getId(),
+                savedUser.getRole()
+        );
+
+        return savedUser;
 
     }
 
@@ -79,7 +90,14 @@ public class UserService {
                 user.setRole(UserRole.ADMIN);
                 user.setIsActive(true);
                 user.setUpdatedOn(LocalDateTime.now());
-                return userRepository.save(user);
+                User savedAdmin = userRepository.save(user);
+
+                log.info(
+                        "Default admin restored: userId={}",
+                        savedAdmin.getId()
+                );
+
+                return savedAdmin;
             }
 
             return user;
@@ -101,59 +119,176 @@ public class UserService {
                 .updatedOn(now)
                 .build();
 
-        return userRepository.save(admin);
+        User savedAdmin = userRepository.save(admin);
+
+        log.info(
+                "Default admin created: userId={}",
+                savedAdmin.getId()
+        );
+
+        return savedAdmin;
     }
 
-    public User login(LoginRequest loginRequest){
-        String email = loginRequest.getEmail().trim().toLowerCase();
-        User user = userRepository.findUserByEmail(email)
-                .orElseThrow(() -> new InvalidLoginException("Incorrect email or password."));
+    public User getCurrentUser() {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
 
-        String password = loginRequest.getPassword();
-        String hashsetPassword = user.getPassword();
-
-        if (!passwordEncoder.matches(password,hashsetPassword)){
-            throw new InvalidLoginException("Incorrect email or password.");
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken) {
+            throw new UnauthorizedActionException(
+                    "User must be logged in."
+            );
         }
 
-        if(!user.getIsActive()){
-            throw new UnauthorizedActionException("User account is not active.");
-        }
-
-        return user;
+        return userRepository.findUserByEmail(authentication.getName())
+                .orElseThrow(() ->
+                        new UserNotFoundException("User not found."));
     }
 
-    public User getCurrentUser(){
-        Object userId = session.getAttribute("user_id");
-
-        if (userId == null){
-            throw new UnauthorizedActionException("User must be logged in.");
-        }
-        return userRepository.findById((UUID) userId).orElseThrow(() -> new UserNotFoundException("User not found."));
-    }
-
-    public User findById(UUID id) {
+    public User findById (UUID id){
         return userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User not found."));
     }
 
-    public List<User> getAll() {
-        return userRepository.findAll();
+    public List<User> getAll () {
+            return userRepository.findAll();
     }
 
-    public void logout() {
-        session.invalidate();
-    }
 
-    public boolean isAdmin(){
-        try{
-            return getCurrentUser().getRole() == UserRole.ADMIN;
-        }catch (RuntimeException e){
+    public boolean hasAdminPermission() {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken) {
             return false;
         }
+
+        return authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority)
+                .anyMatch(authority -> authority.equals("PRODUCT_CREATE")
+                        || authority.equals("PRODUCT_UPDATE")
+                        || authority.equals("PRODUCT_DELETE")
+                        || authority.equals("ORDER_STATUS_UPDATE")
+                        || authority.equals("USER_VIEW")
+                        || authority.equals("USER_ACTIVATE")
+                        || authority.equals("USER_DEACTIVATE")
+                        || authority.equals("USER_ROLE_UPDATE"));
     }
 
-    public boolean isLoggedIn() {
-        return session.getAttribute("user_id") != null;
+    public boolean isLoggedIn () {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        return authentication != null
+                && authentication.isAuthenticated()
+                && !(authentication instanceof AnonymousAuthenticationToken);
+    }
+
+    public boolean hasAnyAuthority(String... requiredAuthorities) {
+        Authentication authentication =
+                SecurityContextHolder.getContext().getAuthentication();
+
+        if (authentication == null
+                || !authentication.isAuthenticated()
+                || authentication instanceof AnonymousAuthenticationToken) {
+            return false;
+        }
+
+        Set<String> authorities = authentication.getAuthorities()
+                .stream()
+                .map(GrantedAuthority::getAuthority)
+                .collect(Collectors.toSet());
+
+        return Arrays.stream(requiredAuthorities)
+                .anyMatch(authorities::contains);
+    }
+
+    @PreAuthorize("hasAuthority('USER_ACTIVATE')")
+    public User activateUser(UUID id) {
+        User user = findById(id);
+
+        user.setIsActive(true);
+        user.setUpdatedOn(LocalDateTime.now());
+
+        User savedUser = userRepository.save(user);
+
+        log.info(
+                "User activated: userId={}",
+                savedUser.getId()
+        );
+
+        return savedUser;
+    }
+
+    @PreAuthorize("hasAuthority('USER_DEACTIVATE')")
+    public User deactivateUser(UUID id) {
+        User targetUser = findById(id);
+        User currentUser = getCurrentUser();
+
+        if (targetUser.getId().equals(currentUser.getId())) {
+            throw new UnauthorizedActionException(
+                    "You cannot deactivate your own account."
+            );
+        }
+
+        if (targetUser.getRole() == UserRole.ADMIN) {
+            throw new UnauthorizedActionException(
+                    "The main administrator cannot be deactivated."
+            );
+        }
+
+        targetUser.setIsActive(false);
+        targetUser.setUpdatedOn(LocalDateTime.now());
+
+        User savedUser = userRepository.save(targetUser);
+
+        log.info(
+                "User deactivated: userId={}, performedBy={}",
+                savedUser.getId(),
+                currentUser.getId()
+        );
+
+        return savedUser;
+    }
+
+    @PreAuthorize("hasAuthority('USER_ROLE_UPDATE')")
+    public User updateUserRole(UUID userId, UserRole newRole) {
+        User currentUser = getCurrentUser();
+        User targetUser = findById(userId);
+
+        if (targetUser.getId().equals(currentUser.getId())) {
+            throw new UnauthorizedActionException(
+                    "Не можете да промените собствената си роля."
+            );
+        }
+
+        if (newRole == null) {
+            throw new InvalidUserDataException(
+                    "Ролята е задължителна."
+            );
+        }
+
+        if (newRole == UserRole.ADMIN) {
+            throw new UnauthorizedActionException(
+                    "Ролята ADMIN не може да бъде задавана през административния панел."
+            );
+        }
+        UserRole oldRole = targetUser.getRole();
+        targetUser.setRole(newRole);
+        targetUser.setUpdatedOn(LocalDateTime.now());
+
+        User savedUser = userRepository.save(targetUser);
+
+        log.info(
+                "User role updated: userId={}, oldRole={}, newRole={}, performedBy={}",
+                savedUser.getId(),
+                oldRole,
+                savedUser.getRole(),
+                currentUser.getId()
+        );
+
+        return savedUser;
     }
 }

@@ -6,16 +6,18 @@ import app.exception.ProductAlreadyExistsException;
 import app.exception.UnauthorizedActionException;
 import app.model.entity.product.Product;
 import app.model.entity.user.User;
-import app.model.entity.user.UserRole;
 import app.repository.product.ProductRepository;
 import app.web.dto.product.ProductCreateRequest;
 import app.web.dto.product.ProductUpdateRequest;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+@Slf4j
 @Service
 public class ProductService {
 
@@ -37,6 +39,7 @@ public class ProductService {
         return productRepository.findById(id).orElseThrow(() -> new ProductNotFoundException("No product with [%s] id.".formatted(id)));
     }
 
+    @PreAuthorize("hasAuthority('PRODUCT_CREATE')")
     public Product create(ProductCreateRequest request, User currentUser) {
         if (request == null) {
             throw new InvalidProductDataException("Product request is required.");
@@ -44,10 +47,6 @@ public class ProductService {
 
         if (currentUser == null) {
             throw new UnauthorizedActionException("User must be logged in.");
-        }
-
-        if (currentUser.getRole() != UserRole.ADMIN) {
-            throw new UnauthorizedActionException("Only admins can manage products.");
         }
 
         String name = request.getName() == null ? null : request.getName().trim();
@@ -69,9 +68,18 @@ public class ProductService {
                 .updatedOn(now)
                 .build();
 
-        return productRepository.save(product);
+        Product savedProduct = productRepository.save(product);
+
+        log.info(
+                "Product created: id={}, name={}",
+                savedProduct.getId(),
+                savedProduct.getName()
+        );
+
+        return savedProduct;
     }
 
+    @PreAuthorize("hasAuthority('PRODUCT_UPDATE')")
     public Product update(UUID id, ProductUpdateRequest updateRequest, User currentUser){
 
         Product updatedProduct = productRepository.findById(id)
@@ -79,10 +87,6 @@ public class ProductService {
 
         if (currentUser == null) {
             throw new UnauthorizedActionException("User must be logged in.");
-        }
-
-        if (currentUser.getRole() != UserRole.ADMIN) {
-            throw new UnauthorizedActionException("Only admins can manage products.");
         }
 
         String name = updateRequest.getName() == null ? null : updateRequest.getName().trim();
@@ -105,17 +109,22 @@ public class ProductService {
         updatedProduct.setIsActive(Boolean.TRUE.equals(updateRequest.getIsActive()));
         updatedProduct.setUpdatedOn(now);
 
-        return productRepository.save(updatedProduct);
+        Product savedProduct = productRepository.save(updatedProduct);
+
+        log.info(
+                "Product updated: id={}, name={}",
+                savedProduct.getId(),
+                savedProduct.getName()
+        );
+
+        return savedProduct;
 
     }
 
+    @PreAuthorize("hasAuthority('PRODUCT_DELETE')")
     public Product delete(UUID id, User currentUser){
         if (currentUser == null) {
             throw new UnauthorizedActionException("User must be logged in.");
-        }
-
-        if (currentUser.getRole() != UserRole.ADMIN) {
-            throw new UnauthorizedActionException("Only admins can manage products.");
         }
 
         Product product = productRepository.findById(id)
@@ -123,7 +132,16 @@ public class ProductService {
 
         product.setIsActive(false);
         product.setUpdatedOn(LocalDateTime.now());
-        return productRepository.save(product);
+
+        Product savedProduct = productRepository.save(product);
+
+        log.info(
+                "Product deactivated: id={}, name={}",
+                savedProduct.getId(),
+                savedProduct.getName()
+        );
+
+        return savedProduct;
     }
 
 }

@@ -11,14 +11,39 @@
 
     <nav class='main-nav'>
         <a class='nav-link' th:classappend="${activePage == 'index'} ? ' active'" th:href="@{/index}">Начало</a>
-        <a class='nav-link' th:href="@{/products}">Магазин</a>
+        <a class='nav-link' th:classappend="${activePage == 'products'} ? ' active'" th:href="@{/products}">Магазин</a>
         <a class='nav-link' th:classappend="${activePage == 'cart'} ? ' active'" th:href="@{/cart}">Количка</a>
         <a class='nav-link' th:classappend="${activePage == 'profile'} ? ' active'" th:href="@{/profile}">Моят профил</a>
         <a class='nav-link' th:classappend="${activePage == 'orders'} ? ' active'" th:href="@{/orders}">Моите поръчки</a>
+        <div th:if="${hasAdminPermission}" class="admin-menu">
+            <button class="nav-link admin-menu-button" type="button">
+                Администрация
+            </button>
+
+            <div class="admin-dropdown">
+                <a th:if="${canManageOrders}"
+                   th:classappend="${activePage == 'admin-orders'} ? ' active'"
+                   th:href="@{/admin}">
+                    Поръчки
+                </a>
+
+                <a th:if="${canManageProducts}"
+                   th:classappend="${activePage == 'admin-products'} ? ' active'"
+                   th:href="@{/admin-products}">
+                    Продукти
+                </a>
+
+                <a th:if="${canManageUsers}"
+                   th:classappend="${activePage == 'admin-users'} ? ' active'"
+                   th:href="@{/admin-users}">
+                    Потребители
+                </a>
+            </div>
+        </div>
     </nav>
 
     <div class='header-actions'>
-        <form th:action="@{/logout}" method="post">
+        <form th:action="@{/perform-logout}" method="post">
             <button class='action-pill dark' type="submit">Изход</button>
         </form>
         <a class='cart-pill' th:href="@{/cart}"><span class='cart-icon'>🛒</span> 0</a>

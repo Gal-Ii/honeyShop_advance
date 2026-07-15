@@ -8,6 +8,7 @@ import app.web.dto.product.ProductCreateRequest;
 import app.web.dto.product.ProductUpdateRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -30,6 +31,7 @@ public class ProductController {
         this.productService = productService;
     }
 
+    @PreAuthorize("hasAuthority('PRODUCT_CREATE')")
     @PostMapping("/products")
     public String createProduct(@Valid @ModelAttribute("productCreateRequest") ProductCreateRequest request, BindingResult bindingResult) {
         if (bindingResult.hasErrors()) {
@@ -49,9 +51,10 @@ public class ProductController {
             return "product-create";
         }
 
-        return "redirect:/admin";
+        return "redirect:/admin-products";
     }
 
+    @PreAuthorize("hasAuthority('PRODUCT_UPDATE')")
     @PostMapping("/products/{id}/update")
     public String updateProduct(@PathVariable UUID id, @Valid @ModelAttribute("productUpdateRequest") ProductUpdateRequest updateRequest, BindingResult bindingResult, Model model){
          if (bindingResult.hasErrors()) {
@@ -73,23 +76,30 @@ public class ProductController {
             return "product-update";
         }
 
-        return "redirect:/admin";
+        return "redirect:/admin-products";
     }
 
+    @PreAuthorize("hasAuthority('PRODUCT_DELETE')")
     @PostMapping("/products/{id}/delete")
     public String deleteProduct(@PathVariable UUID id){
         User currentUser = userService.getCurrentUser();
         productService.delete(id, currentUser);
-        return "redirect:/admin";
+        return "redirect:/admin-products";
     }
 
+    @PreAuthorize("hasAuthority('PRODUCT_CREATE')")
     @GetMapping("/product-create")
     public String productCreatePage(Model model){
-        model.addAttribute("productCreateRequest", new ProductCreateRequest());
+        ProductCreateRequest request = new ProductCreateRequest();
+        request.setIsActive(true);
+
+        model.addAttribute("productCreateRequest", request);
+
         return "product-create";
     }
 
 
+    @PreAuthorize("hasAuthority('PRODUCT_UPDATE')")
     @GetMapping("/products/{id}/update")
     public String productUpdatePage(@PathVariable UUID id, Model model){
         Product product = productService.getById(id);

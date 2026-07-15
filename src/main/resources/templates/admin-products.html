@@ -8,22 +8,9 @@
 </head>
 <body>
 <div class='top-strip'>🐝 Добре дошли в HoneyShop — натурален мед и пчелни продукти</div>
-<header class='site-header'>
-  <div class='container header-inner'>
-    <a th:href="@{/index}" class='logo'>HoneyShop<span></span>
-    </a>
-    <nav class='main-nav'>
-      <a class='nav-link ' th:href="@{/index}">Начало</a>
-      <a class='nav-link ' th:href="@{/products}">Магазин</a>
-      <a class='nav-link ' th:href="@{/cart}">Количка</a>
-      <a class='nav-link ' th:href="@{/profile}">Моят профил</a>
-      <a class='nav-link active' th:if="${isAdmin}" th:href="@{/admin}">Админ</a>
-    </nav>
-    <div class='header-actions'>
-      <a class='action-pill dark' th:href="@{/login}">Вход</a>
-      <a class='action-pill' th:href="@{/register}">Регистрирай се</a>
-      <a class='cart-pill' th:href="@{/cart}"><span class='cart-icon'>🛒</span> 0</a>
-    </div>
+<header class="site-header">
+  <div th:with="activePage='admin-products'"
+       th:replace="~{fragments/navigation_bar :: nav-bar}">
   </div>
 </header>
 
@@ -40,7 +27,7 @@
         <div>
           <h2>Списък с продукти</h2>
         </div>
-        <a class='btn' th:href="@{/product-create}">Създай нов продукт</a>
+        <a class='btn' th:if="${canManageProducts}" th:href="@{/product-create}">Създай нов продукт</a>
       </div>
 
       <div class='table-responsive'>
@@ -56,6 +43,7 @@
               <th>Активен</th>
               <th>Created On</th>
               <th>Updated On</th>
+              <th>Действия</th>
             </tr>
           </thead>
           <tbody>
@@ -72,6 +60,22 @@
               </td>
               <td th:text="${product.createdOn}">2026-05-22 10:30</td>
               <td th:text="${product.updatedOn}">2026-05-22 10:30</td>
+              <td>
+                <a class="btn light"
+                   th:if="${canManageProducts}"
+                   th:href="@{/products/{id}/update(id=${product.id})}">
+                  Редактирай
+                </a>
+
+                <form th:if="${canManageProducts}"
+                      th:action="@{/products/{id}/delete(id=${product.id})}"
+                      method="post"
+                      style="display: inline;">
+                  <button class="btn dark" type="submit">
+                    Деактивирай
+                  </button>
+                </form>
+              </td>
             </tr>
           </tbody>
         </table>

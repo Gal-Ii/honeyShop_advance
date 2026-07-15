@@ -1,10 +1,8 @@
 package app.web.controller;
 
-import app.model.entity.user.User;
 import app.service.UserService;
 import app.web.dto.user.LoginRequest;
 import app.web.dto.user.RegisterRequest;
-import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -69,30 +67,8 @@ public class UserController {
         return "login";
     }
 
-    @PostMapping("/login")
-    public String loginUser(@Valid @ModelAttribute("loginRequest") LoginRequest request, BindingResult bindingResult, Model model, HttpSession session) {
-        if (bindingResult.hasErrors()) {
-            model.addAttribute("loginError", "Невалиден имейл или парола.");
-            return "login";
-        }
-
-        try {
-            User user = userService.login(request);
-
-            session.setAttribute("user_id", user.getId());
-            session.setAttribute("user_role", user.getRole());
-
-            return "redirect:/profile";
-        }catch (RuntimeException e){
-            model.addAttribute("loginError", "Невалиден имейл или парола.");
-            return "login";
-        }
-
-    }
-
-    @PostMapping("/logout")
-    public String logoutUser(HttpSession session){
-        session.invalidate();
-        return "redirect:/index";
+    @GetMapping("/logout")
+    public String logoutPage() {
+        return "logout";
     }
 }
