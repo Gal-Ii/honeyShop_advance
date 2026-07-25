@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>HoneyShop - Редактиране на профил</title>
+
+    <link rel="stylesheet"
+          th:href="@{/css/style.css}">
+</head>
+
+<body>
+
+<div class="top-strip">
+    🐝 Добре дошли в HoneyShop — натурален мед и пчелни продукти
+</div>
+
+<header class="site-header">
+    <div th:with="activePage='profile'"
+         th:replace="~{fragments/navigation_bar :: nav-bar}">
+    </div>
+</header>
+
+<section class="page-hero">
+    <div class="container">
+        <h1>Редактиране на профил</h1>
+
+        <p>
+            Актуализирайте личните данни и профилната си снимка.
+        </p>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+
+        <div class="form-card">
+
+            <form th:action="@{/profile/edit}"
+                  th:object="${updateProfileRequest}"
+                  method="post"
+                  novalidate>
+
+                <div class="form-grid">
+
+                    <div class="form-group full-width">
+                        <label for="name">
+                            Име и фамилия
+                        </label>
+
+                        <input id="name"
+                               type="text"
+                               th:field="*{name}"
+                               placeholder="Въведете име и фамилия">
+
+                        <p class="error"
+                           th:if="${#fields.hasErrors('name')}"
+                           th:errors="*{name}">
+                        </p>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="email">Имейл</label>
+
+                        <input id="email"
+                               type="email"
+                               th:field="*{email}"
+                               placeholder="example@email.com">
+
+                        <p class="error"
+                           th:if="${#fields.hasErrors('email')}"
+                           th:errors="*{email}">
+                        </p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="country">
+                            Държава
+                        </label>
+
+                        <select id="country"
+                                th:field="*{country}">
+
+                            <option value="">
+                                Изберете държава
+                            </option>
+
+                            <option th:each="countryOption : ${countries}"
+                                    th:value="${countryOption}"
+                                    th:text="${countryOption}">
+                            </option>
+                        </select>
+
+                        <p class="error"
+                           th:if="${#fields.hasErrors('country')}"
+                           th:errors="*{country}">
+                        </p>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="gender">
+                            Пол
+                        </label>
+
+                        <select id="gender"
+                                th:field="*{gender}">
+
+                            <option value="">
+                                Изберете пол
+                            </option>
+
+                            <option th:each="genderOption : ${genders}"
+                                    th:value="${genderOption}"
+                                    th:text="${genderOption}">
+                            </option>
+                        </select>
+
+                        <p class="error"
+                           th:if="${#fields.hasErrors('gender')}"
+                           th:errors="*{gender}">
+                        </p>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="profilePicture">
+                            URL на профилната снимка
+                        </label>
+
+                        <input id="profilePicture"
+                               type="text"
+                               th:field="*{profilePicture}"
+                               placeholder="/images/default-avatar-man.png">
+
+                        <p class="error"
+                           th:if="${#fields.hasErrors('profilePicture')}"
+                           th:errors="*{profilePicture}">
+                        </p>
+
+                        <div class="hint">
+                            Можете да използвате адрес към снимка или път
+                            към изображение от приложението.
+                        </div>
+                    </div>
+
+                    <div class="form-group full-width"
+                         th:if="${updateProfileRequest.profilePicture != null
+                                and !updateProfileRequest.profilePicture.isBlank()}">
+
+                        <label>
+                            Преглед на снимката
+                        </label>
+
+                        <div class="profile-picture-preview">
+                            <img th:src="${updateProfileRequest.profilePicture}"
+                                 alt="Профилна снимка">
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="form-actions">
+                    <button class="btn"
+                            type="submit">
+                        Запази промените
+                    </button>
+
+                    <a class="btn light"
+                       th:href="@{/profile}">
+                        Отказ
+                    </a>
+                </div>
+
+            </form>
+        </div>
+
+    </div>
+</section>
+
+<footer class="site-footer">
+    <p>
+        &copy; 2026 HoneyShop. Всички права запазени.
+    </p>
+</footer>
+
+</body>
+</html>

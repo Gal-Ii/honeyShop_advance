@@ -44,6 +44,12 @@
                     <a th:href="@{/orders}" class="btn" style="margin-top: 20px;">Моите поръчки</a>
                     <a th:href="@{/products}" class="btn" style="display: block; width: fit-content; margin-top: 20px;">Магазин</a>
 
+                    <a th:href="@{/profile/edit}"
+                       class="btn"
+                       style="display: block; width: fit-content; margin-top: 20px;">
+                        Редактирай профила
+                    </a>
+
                     <form th:action="@{/perform-logout}" method="post" style="margin-top: 20px;">
                         <button class="action-pill" type="submit">Изход</button>
                     </form>

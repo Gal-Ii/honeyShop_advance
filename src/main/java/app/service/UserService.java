@@ -3,6 +3,7 @@ package app.service;
 import app.exception.*;
 import app.model.entity.user.Gender;
 import app.model.entity.user.Country;
+import app.web.dto.user.UpdateProfileRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.GrantedAuthority;
@@ -16,7 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -290,5 +291,65 @@ public class UserService {
         );
 
         return savedUser;
+    }
+
+    @Transactional
+    public boolean updateCurrentUserProfile(UpdateProfileRequest request) {
+        User user = getCurrentUser();
+
+        String normalizedEmail = request.getEmail()
+                .trim()
+                .toLowerCase(Locale.ROOT);
+
+        boolean emailChanged =
+                !user.getEmail().equalsIgnoreCase(normalizedEmail);
+
+        if (emailChanged &&
+                userRepository.existsByEmailAndIdNot(
+                        normalizedEmail,
+                        user.getId())) {
+
+            throw new UserAlreadyExistsException(
+                    "User with this email already exists."
+            );
+        }
+
+        user.setName(request.getName().trim());
+        user.setEmail(normalizedEmail);
+        user.setCountry(request.getCountry());
+        user.setGender(request.getGender());
+
+        String profilePicture = request.getProfilePicture();
+
+        String currentProfilePicture = user.getProfilePicture();
+
+        boolean usesDefaultPicture =
+                profilePicture == null
+                        || profilePicture.isBlank()
+                        || currentProfilePicture == null
+                        || currentProfilePicture.equals("/images/default-avatar-man.png")
+                        || currentProfilePicture.equals("/images/default-avatar-woman.png");
+
+        if (usesDefaultPicture) {
+            profilePicture = request.getGender() == Gender.MALE
+                    ? "/images/default-avatar-man.png"
+                    : "/images/default-avatar-woman.png";
+        } else {
+            profilePicture = profilePicture.trim();
+        }
+
+        user.setProfilePicture(profilePicture);
+
+        user.setUpdatedOn(LocalDateTime.now());
+
+        userRepository.save(user);
+
+        log.info(
+                "User profile updated: userId={}, emailChanged={}",
+                user.getId(),
+                emailChanged
+        );
+
+        return emailChanged;
     }
 }

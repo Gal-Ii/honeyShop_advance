@@ -29,8 +29,13 @@
             <form th:action="@{/login}" th:object="${loginRequest}" method="post">
                 <div class='form-group'>
                     <label for='email'>Имейл</label>
+                    <p class="success-message"
+                       th:if="${param.emailChanged}">
+                        Имейлът беше променен успешно. Влезте отново с новия email.
+                    </p>
                     <input id='email' th:field="*{email}" type='email' placeholder='Въведете имейл'></div>
                     <p class="error" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></p>
+
                 <div class='form-group'>
                     <label for='password'>Парола</label>
                     <input id='password' th:field="*{password}" type='password' placeholder='Въведете парола'>
@@ -39,6 +44,7 @@
                 <button class='btn' type='submit'>Вход</button>
             </form>
             <p style='margin-top:18px;'>Нямате профил? <a th:href="@{/register}"><strong>Регистрирайте се</strong></a></p>
+
         </div>
     </div>
 </section>
