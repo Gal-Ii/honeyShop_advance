@@ -3,9 +3,11 @@ package app.web.controller;
 import app.model.entity.product.Product;
 import app.model.entity.user.User;
 import app.service.ProductService;
+import app.service.ReviewService;
 import app.service.UserService;
 import app.web.dto.product.ProductCreateRequest;
 import app.web.dto.product.ProductUpdateRequest;
+import app.web.dto.review.CreateReviewRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -17,6 +19,8 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import app.exception.ProductAlreadyExistsException;
+import org.springframework.web.client.HttpClientErrorException;
+
 import java.util.UUID;
 
 @Controller
@@ -24,11 +28,13 @@ public class ProductController {
 
     private final ProductService productService;
     private final UserService userService;
+    private final ReviewService reviewService;
 
     @Autowired
-    public ProductController(ProductService productService, UserService userService) {
+    public ProductController(ProductService productService, UserService userService, ReviewService reviewService) {
         this.userService = userService;
         this.productService = productService;
+        this.reviewService = reviewService;
     }
 
     @PreAuthorize("hasAuthority('PRODUCT_CREATE')")
@@ -118,4 +124,69 @@ public class ProductController {
         return "product-update";
     }
 
+    @GetMapping("/products/{id}")
+    public String productDetailsPage(
+            @PathVariable UUID id,
+            Model model) {
+
+        Product product = productService.getById(id);
+
+        model.addAttribute("product", product);
+        model.addAttribute(
+                "reviews",
+                reviewService.getReviewsByProductId(id)
+        );
+        model.addAttribute(
+                "createReviewRequest",
+                new CreateReviewRequest()
+        );
+
+        return "product-details";
+    }
+
+    @PostMapping("/products/{id}/reviews")
+    public String createReview(
+            @PathVariable UUID id,
+            @Valid @ModelAttribute("createReviewRequest")
+            CreateReviewRequest request,
+            BindingResult bindingResult,
+            Model model) {
+
+        if (bindingResult.hasErrors()) {
+            model.addAttribute("product", productService.getById(id));
+            model.addAttribute(
+                    "reviews",
+                    reviewService.getReviewsByProductId(id)
+            );
+
+            return "product-details";
+        }
+
+        User currentUser = userService.getCurrentUser();
+
+        request.setProductId(id);
+        request.setUserId(currentUser.getId());
+        request.setAuthorName(currentUser.getName());
+
+        try {
+            reviewService.createReview(request);
+        } catch (HttpClientErrorException.Conflict exception) {
+
+            bindingResult.rejectValue(
+                    "comment",
+                    "review.already.exists",
+                    "Вече сте оставили отзив за този продукт."
+            );
+
+            model.addAttribute("product", productService.getById(id));
+            model.addAttribute(
+                    "reviews",
+                    reviewService.getReviewsByProductId(id)
+            );
+
+            return "product-details";
+        }
+
+        return "redirect:/products/" + id;
+    }
 }

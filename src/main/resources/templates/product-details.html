@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="'HoneyShop - ' + ${product.name}">
+        HoneyShop - Продукт
+    </title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<div class="top-strip">
+    🐝 Добре дошли в HoneyShop — натурален мед и пчелни продукти
+</div>
+
+<header class="site-header">
+    <div th:with="activePage='products'"
+         th:replace="~{fragments/navigation_bar :: nav-bar}">
+    </div>
+</header>
+
+<section class="page-hero">
+    <div class="container">
+        <h1 th:text="${product.name}">Име на продукт</h1>
+    </div>
+</section>
+
+<section class="section">
+    <div class="container">
+
+        <article class="product-card">
+            <div class="product-body">
+                <h2 th:text="${product.name}">Име на продукт</h2>
+
+                <p th:text="${product.description}">
+                    Описание на продукта
+                </p>
+
+                <div class="stock"
+                     th:text="'Наличност: ' + ${product.items} + ' бр.'">
+                    Наличност
+                </div>
+
+                <div class="price"
+                     th:text="${#numbers.formatDecimal(product.price, 1, 2)} + ' лв.'">
+                    0.00 лв.
+                </div>
+            </div>
+        </article>
+
+        <h2>Отзиви</h2>
+        <form th:action="@{/products/{id}/reviews(id=${product.id})}"
+              th:object="${createReviewRequest}"
+              method="post"
+              novalidate>
+
+            <div class="form-group">
+                <label for="rating">Оценка</label>
+
+                <select id="rating" th:field="*{rating}">
+                    <option value="">Избери оценка</option>
+                    <option value="1">1 звезда</option>
+                    <option value="2">2 звезди</option>
+                    <option value="3">3 звезди</option>
+                    <option value="4">4 звезди</option>
+                    <option value="5">5 звезди</option>
+                </select>
+
+                <p class="error"
+                   th:if="${#fields.hasErrors('rating')}"
+                   th:errors="*{rating}">
+                </p>
+            </div>
+
+            <div class="form-group">
+                <label for="comment">Коментар</label>
+
+                <textarea id="comment"
+                          th:field="*{comment}"
+                          rows="5"
+                          placeholder="Напишете мнението си за продукта">
+        </textarea>
+
+                <p class="error"
+                   th:if="${#fields.hasErrors('comment')}"
+                   th:errors="*{comment}">
+                </p>
+            </div>
+
+            <button class="btn" type="submit">
+                Добави отзив
+            </button>
+        </form>
+        <p th:if="${#lists.isEmpty(reviews)}">
+            Все още няма отзиви за този продукт.
+        </p>
+
+        <article class="product-card"
+                 th:each="review : ${reviews}">
+            <div class="product-body">
+
+                <h3 th:text="${review.authorName}">
+                    Потребител
+                </h3>
+
+                <p th:text="'Оценка: ' + ${review.rating} + ' / 5'">
+                    Оценка
+                </p>
+
+                <p th:text="${review.comment}">
+                    Коментар
+                </p>
+
+                <small th:text="${#temporals.format(
+                        review.createdOn,
+                        'dd.MM.yyyy HH:mm'
+                )}">
+                    Дата
+                </small>
+            </div>
+        </article>
+
+        <a class="btn light" th:href="@{/products}">
+            Назад към магазина
+        </a>
+
+    </div>
+</section>
+
+<footer class="site-footer">
+    <p>&copy; 2026 HoneyShop. Всички права запазени.</p>
+</footer>
+
+</body>
+</html>
