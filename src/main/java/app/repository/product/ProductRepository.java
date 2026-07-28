@@ -12,6 +12,10 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
 
     List<Product> findAllByIsActiveTrue();
 
+    List<Product> findAllByIsActiveTrueAndItemsLessThanEqual(
+            Integer items
+    );
+
     boolean existsByName(String name);
 
     boolean existsByNameAndIdNot(String name, UUID id);

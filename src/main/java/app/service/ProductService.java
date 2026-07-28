@@ -15,6 +15,7 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cache.annotation.Caching;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -181,5 +182,41 @@ public class ProductService {
         );
 
         return savedProduct;
+    }
+
+    @Transactional
+    @CacheEvict(
+            cacheNames = {
+                    "activeProducts",
+                    "allProducts",
+                    "productsById"
+            },
+            allEntries = true
+    )
+    public int deactivateOutOfStockProducts() {
+
+        List<Product> products =
+                productRepository
+                        .findAllByIsActiveTrueAndItemsLessThanEqual(0);
+
+        if (products.isEmpty()) {
+            return 0;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+
+        products.forEach(product -> {
+            product.setIsActive(false);
+            product.setUpdatedOn(now);
+        });
+
+        productRepository.saveAll(products);
+
+        log.info(
+                "Automatically deactivated [{}] out-of-stock products.",
+                products.size()
+        );
+
+        return products.size();
     }
 }
