@@ -51,7 +51,7 @@
 
           <div class='form-group'>
             <label for='items'>Налично количество</label>
-            <input id='items' th:field="*{items}" type='number' min='0.01' step='1' placeholder='Например: 15'>
+            <input id='items' th:field="*{items}" type='number' min='0' step='1' placeholder='Например: 15'>
             <p class="error" th:if="${#fields.hasErrors('items')}" th:errors="*{items}"></p>
           </div>
 
