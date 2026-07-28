@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import app.exception.ProductAlreadyExistsException;
-import org.springframework.web.client.HttpClientErrorException;
+import feign.FeignException;
 
 import java.util.UUID;
 
@@ -170,7 +170,7 @@ public class ProductController {
 
         try {
             reviewService.createReview(request);
-        } catch (HttpClientErrorException.Conflict exception) {
+        } catch (FeignException.Conflict exception) {
 
             bindingResult.rejectValue(
                     "comment",
