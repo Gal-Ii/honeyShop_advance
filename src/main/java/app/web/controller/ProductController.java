@@ -8,6 +8,7 @@ import app.service.UserService;
 import app.web.dto.product.ProductCreateRequest;
 import app.web.dto.product.ProductUpdateRequest;
 import app.web.dto.review.CreateReviewRequest;
+import app.web.dto.review.UpdateReviewRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -130,8 +131,10 @@ public class ProductController {
             Model model) {
 
         Product product = productService.getById(id);
+        User currentUser = userService.getCurrentUser();
 
         model.addAttribute("product", product);
+        model.addAttribute("currentUserId", currentUser.getId());
         model.addAttribute(
                 "reviews",
                 reviewService.getReviewsByProductId(id)
@@ -139,6 +142,10 @@ public class ProductController {
         model.addAttribute(
                 "createReviewRequest",
                 new CreateReviewRequest()
+        );
+        model.addAttribute(
+                "updateReviewRequest",
+                new UpdateReviewRequest()
         );
 
         return "product-details";
@@ -188,5 +195,81 @@ public class ProductController {
         }
 
         return "redirect:/products/" + id;
+    }
+
+    @PostMapping("/products/{productId}/reviews/{reviewId}/update")
+    public String updateReview(
+            @PathVariable UUID productId,
+            @PathVariable UUID reviewId,
+            @Valid @ModelAttribute("updateReviewRequest")
+            UpdateReviewRequest request,
+            BindingResult bindingResult,
+            Model model) {
+
+        User currentUser = userService.getCurrentUser();
+        request.setUserId(currentUser.getId());
+
+        if (bindingResult.hasErrors()) {
+            model.addAttribute(
+                    "product",
+                    productService.getById(productId)
+            );
+            model.addAttribute(
+                    "currentUserId",
+                    currentUser.getId()
+            );
+            model.addAttribute(
+                    "reviews",
+                    reviewService.getReviewsByProductId(productId)
+            );
+            model.addAttribute(
+                    "createReviewRequest",
+                    new CreateReviewRequest()
+            );
+
+            return "product-details";
+        }
+
+        try {
+            reviewService.updateReview(reviewId, request);
+        } catch (FeignException.Forbidden exception) {
+            bindingResult.reject(
+                    "review.update.forbidden",
+                    "Нямате право да редактирате това ревю."
+            );
+
+            model.addAttribute(
+                    "product",
+                    productService.getById(productId)
+            );
+            model.addAttribute(
+                    "currentUserId",
+                    currentUser.getId()
+            );
+            model.addAttribute(
+                    "reviews",
+                    reviewService.getReviewsByProductId(productId)
+            );
+            model.addAttribute(
+                    "createReviewRequest",
+                    new CreateReviewRequest()
+            );
+
+            return "product-details";
+        }
+
+        return "redirect:/products/" + productId;
+    }
+
+    @PostMapping("/products/{productId}/reviews/{reviewId}/delete")
+    public String deleteReview(
+            @PathVariable UUID productId,
+            @PathVariable UUID reviewId) {
+
+        User currentUser = userService.getCurrentUser();
+
+        reviewService.deleteReview(reviewId, currentUser.getId());
+
+        return "redirect:/products/" + productId;
     }
 }

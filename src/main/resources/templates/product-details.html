@@ -118,6 +118,88 @@
                 )}">
                     Дата
                 </small>
+
+                <form th:if="${review.userId.equals(currentUserId)}"
+                      th:action="@{/products/{productId}/reviews/{reviewId}/update(
+          productId=${product.id},
+          reviewId=${review.id}
+      )}"
+                      th:object="${updateReviewRequest}"
+                      method="post">
+
+                    <div>
+                        <label th:for="'update-rating-' + ${review.id}">
+                            Нова оценка
+                        </label>
+
+                        <select th:id="'update-rating-' + ${review.id}"
+                                name="rating">
+                            <option value="1"
+                                    th:selected="${review.rating == 1}">
+                                1
+                            </option>
+                            <option value="2"
+                                    th:selected="${review.rating == 2}">
+                                2
+                            </option>
+                            <option value="3"
+                                    th:selected="${review.rating == 3}">
+                                3
+                            </option>
+                            <option value="4"
+                                    th:selected="${review.rating == 4}">
+                                4
+                            </option>
+                            <option value="5"
+                                    th:selected="${review.rating == 5}">
+                                5
+                            </option>
+                        </select>
+
+                        <p class="field-error"
+                           th:if="${#fields.hasErrors('rating')}"
+                           th:errors="*{rating}">
+                        </p>
+                    </div>
+
+                    <div>
+                        <label th:for="'update-comment-' + ${review.id}">
+                            Нов коментар
+                        </label>
+
+                        <textarea th:id="'update-comment-' + ${review.id}"
+                                  name="comment"
+                                  th:text="${review.comment}">
+        </textarea>
+
+                        <p class="field-error"
+                           th:if="${#fields.hasErrors('comment')}"
+                           th:errors="*{comment}">
+                        </p>
+                    </div>
+
+                    <p class="field-error"
+                       th:each="error : ${#fields.globalErrors()}"
+                       th:text="${error}">
+                    </p>
+
+                    <button class="btn" type="submit">
+                        Запази промените
+                    </button>
+                </form>
+
+                <form th:if="${review.userId.equals(currentUserId)}"
+                      th:action="@{/products/{productId}/reviews/{reviewId}/delete(
+          productId=${product.id},
+          reviewId=${review.id}
+      )}"
+                      method="post">
+
+                    <button class="btn" type="submit">
+                        Изтрий ревюто
+                    </button>
+                </form>
+
             </div>
         </article>
 
