@@ -10,6 +10,9 @@ import app.repository.product.ProductRepository;
 import app.web.dto.product.ProductCreateRequest;
 import app.web.dto.product.ProductUpdateRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 
@@ -27,18 +30,34 @@ public class ProductService {
         this.productRepository = productRepository;
     }
 
-    public List<Product> getAllActiveProducts(){
-         return productRepository.findAllByIsActiveTrue();
+    @Cacheable(cacheNames = "activeProducts")
+    public List<Product> getAllActiveProducts() {
+
+        return productRepository.findAllByIsActiveTrue();
     }
 
+    @Cacheable(cacheNames = "allProducts")
     public List<Product> getAllProducts() {
+
         return productRepository.findAll();
     }
 
-    public Product getById(UUID id){
-        return productRepository.findById(id).orElseThrow(() -> new ProductNotFoundException("No product with [%s] id.".formatted(id)));
+    @Cacheable(
+            cacheNames = "productsById",
+            key = "#id"
+    )
+    public Product getById(UUID id) {
+
+        return productRepository.findById(id)
+                .orElseThrow(() -> new ProductNotFoundException(
+                        "No product with [%s] id.".formatted(id)
+                ));
     }
 
+    @CacheEvict(
+            cacheNames = {"activeProducts", "allProducts"},
+            allEntries = true
+    )
     @PreAuthorize("hasAuthority('PRODUCT_CREATE')")
     public Product create(ProductCreateRequest request, User currentUser) {
         if (request == null) {
@@ -79,8 +98,18 @@ public class ProductService {
         return savedProduct;
     }
 
+    @Caching(evict = {
+            @CacheEvict(
+                    cacheNames = {"activeProducts", "allProducts"},
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    cacheNames = "productsById",
+                    key = "#id"
+            )
+    })
     @PreAuthorize("hasAuthority('PRODUCT_UPDATE')")
-    public Product update(UUID id, ProductUpdateRequest updateRequest, User currentUser){
+    public Product update(UUID id, ProductUpdateRequest updateRequest, User currentUser) {
 
         Product updatedProduct = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException("Product does not exist."));
@@ -121,8 +150,18 @@ public class ProductService {
 
     }
 
+    @Caching(evict = {
+            @CacheEvict(
+                    cacheNames = {"activeProducts", "allProducts"},
+                    allEntries = true
+            ),
+            @CacheEvict(
+                    cacheNames = "productsById",
+                    key = "#id"
+            )
+    })
     @PreAuthorize("hasAuthority('PRODUCT_DELETE')")
-    public Product delete(UUID id, User currentUser){
+    public Product delete(UUID id, User currentUser) {
         if (currentUser == null) {
             throw new UnauthorizedActionException("User must be logged in.");
         }
@@ -143,5 +182,4 @@ public class ProductService {
 
         return savedProduct;
     }
-
 }
