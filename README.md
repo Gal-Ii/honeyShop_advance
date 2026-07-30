@@ -9,11 +9,16 @@ Honey Shop is a Spring Boot MVC web application for an online honey store. Visit
 - Spring MVC
 - Spring Security
 - Spring Data JPA
+- Spring Cloud OpenFeign
+- Spring Cache with Caffeine
+- Spring Scheduling
 - Thymeleaf
 - Bean Validation
 - MySQL
+- H2 for automated tests
 - Maven
 - Lombok and SLF4J
+- JUnit, Mockito, MockMvc, and JaCoCo
 - HTML and CSS
 
 ## Main Features
@@ -31,6 +36,7 @@ Honey Shop is a Spring Boot MVC web application for an online honey store. Visit
 - Remove products from the shopping cart
 - Create an order from the current cart
 - View personal order history
+- Create, update, and delete product reviews
 - Log out securely
 
 ### Administrative functionality
@@ -108,6 +114,42 @@ Static CSS and image resources are located in:
 ```text
 src/main/resources/static
 ```
+
+## REST Microservice Integration
+
+The application communicates with the independent Honey Review Service through
+Spring Cloud OpenFeign. The microservice runs on port `8081`, owns a separate
+MySQL database, and provides the product review REST API.
+
+The main application invokes the microservice to:
+
+- list reviews for a product
+- create a review
+- update a review belonging to the current user
+- delete a review belonging to the current user
+
+The service address is configurable through:
+
+```properties
+review.service.base-url=${REVIEW_SERVICE_BASE_URL:http://localhost:8081}
+```
+
+REST microservice repository:
+
+https://github.com/Gal-Ii/honey-review-service
+
+## Scheduling and Caching
+
+The application uses Spring's caching mechanism with Caffeine for active
+products, all products, and product details. Product mutations evict the
+affected caches.
+
+Two scheduled maintenance jobs are configured:
+
+- a cron-based job that deactivates out-of-stock products
+- a fixed-delay job that removes expired shopping-cart entries
+
+The schedules and time zone can be configured through environment variables.
 
 ## Configuration
 
@@ -199,26 +241,21 @@ Run the test suite:
 mvn test
 ```
 
-Package the application:
+Run the complete test and coverage verification:
 
 ```bash
-mvn clean package
+mvn verify
 ```
+
+The project contains unit, integration, MVC controller, and API tests. JaCoCo
+enforces a minimum of 70% line coverage. At the latest verification, all 72
+tests passed and the measured line coverage was 70.27%.
 
 ## Repository
 
 Public repository:
 
-https://github.com/Gal-Ii/honeyShop
-
-## Planned Work
-
-- Separate domain-specific REST microservice with its own database
-- OpenFeign integration between the main application and the microservice
-- Global MVC error handling without Whitelabel error pages
-- Profile editing
-- Scheduled jobs and Spring caching
-- Expanded unit, integration, and API tests with coverage reporting
+https://github.com/Gal-Ii/honeyShop_advance
 
 ## Author
 
