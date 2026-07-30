@@ -271,14 +271,6 @@ class ProductServiceTest {
     void updateShouldThrowExceptionWhenProductNameIsBlank() {
         UUID productId = UUID.randomUUID();
 
-        Product existingProduct = Product.builder()
-                .id(productId)
-                .name("Old honey")
-                .price(new BigDecimal("10.00"))
-                .items(5)
-                .isActive(true)
-                .build();
-
         ProductUpdateRequest request = ProductUpdateRequest.builder()
                 .name("   ")
                 .description("Updated description")
@@ -290,9 +282,6 @@ class ProductServiceTest {
         User currentUser = User.builder()
                 .id(UUID.randomUUID())
                 .build();
-
-        when(productRepository.findById(productId))
-                .thenReturn(Optional.of(existingProduct));
 
         InvalidProductDataException exception = assertThrows(
                 InvalidProductDataException.class,
@@ -308,11 +297,7 @@ class ProductServiceTest {
                 exception.getMessage()
         );
 
-        verify(productRepository).findById(productId);
-        verify(productRepository, never())
-                .existsByNameAndIdNot(anyString(), any(UUID.class));
-        verify(productRepository, never()).save(any(Product.class));
-        verifyNoMoreInteractions(productRepository);
+        verifyNoInteractions(productRepository);
     }
 
     @Test
@@ -495,5 +480,145 @@ class ProductServiceTest {
 
     private void verifyByProductIdWasNotDeleted(UUID productId) {
         verify(productRepository, never()).deleteById(productId);
+    }
+
+    @Test
+    void createShouldRejectMissingPrice() {
+        ProductCreateRequest request =
+                validCreateRequest();
+
+        request.setPrice(null);
+
+        assertInvalidCreateRequest(
+                request,
+                "Product price is required."
+        );
+    }
+
+    @Test
+    void createShouldRejectNonPositivePrice() {
+        ProductCreateRequest request =
+                validCreateRequest();
+
+        request.setPrice(BigDecimal.ZERO);
+
+        assertInvalidCreateRequest(
+                request,
+                "Product price must be positive."
+        );
+    }
+
+    @Test
+    void createShouldRejectMissingQuantity() {
+        ProductCreateRequest request =
+                validCreateRequest();
+
+        request.setItems(null);
+
+        assertInvalidCreateRequest(
+                request,
+                "Product quantity is required."
+        );
+    }
+
+    @Test
+    void createShouldRejectNegativeQuantity() {
+        ProductCreateRequest request =
+                validCreateRequest();
+
+        request.setItems(-1);
+
+        assertInvalidCreateRequest(
+                request,
+                "Product quantity cannot be negative."
+        );
+    }
+
+    @Test
+    void createShouldRejectMissingActiveStatus() {
+        ProductCreateRequest request =
+                validCreateRequest();
+
+        request.setIsActive(null);
+
+        assertInvalidCreateRequest(
+                request,
+                "Product active status is required."
+        );
+    }
+
+    @Test
+    void createShouldRejectTooLongDescription() {
+        ProductCreateRequest request =
+                validCreateRequest();
+
+        request.setDescription("a".repeat(1001));
+
+        assertInvalidCreateRequest(
+                request,
+                "Description must be up to 1000 symbols."
+        );
+    }
+
+    private void assertInvalidCreateRequest(
+            ProductCreateRequest request,
+            String expectedMessage) {
+
+        User currentUser = User.builder()
+                .id(UUID.randomUUID())
+                .build();
+
+        InvalidProductDataException exception =
+                assertThrows(
+                        InvalidProductDataException.class,
+                        () -> productService.create(
+                                request,
+                                currentUser
+                        )
+                );
+
+        assertEquals(
+                expectedMessage,
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(productRepository);
+    }
+
+    private ProductCreateRequest validCreateRequest() {
+        return ProductCreateRequest.builder()
+                .name("Acacia honey")
+                .description("Natural Bulgarian honey.")
+                .price(new BigDecimal("10.00"))
+                .imageUrl("/images/acacia.png")
+                .items(10)
+                .isActive(true)
+                .build();
+    }
+
+    @Test
+    void createShouldRejectPriceWithTooManyDecimals() {
+        ProductCreateRequest request =
+                validCreateRequest();
+
+        request.setPrice(new BigDecimal("10.123"));
+
+        assertInvalidCreateRequest(
+                request,
+                "Product price must have up to 8 whole digits and 2 decimal digits."
+        );
+    }
+
+    @Test
+    void createShouldRejectTooLongImagePath() {
+        ProductCreateRequest request =
+                validCreateRequest();
+
+        request.setImageUrl("a".repeat(501));
+
+        assertInvalidCreateRequest(
+                request,
+                "Image path must be up to 500 symbols."
+        );
     }
 }

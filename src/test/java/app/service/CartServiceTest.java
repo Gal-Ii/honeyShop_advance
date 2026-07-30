@@ -443,4 +443,125 @@ class CartServiceTest {
 
         verifyNoInteractions(cartItemRepository);
     }
+
+    @Test
+    void addToCartShouldRejectNullRequest() {
+        User user = User.builder()
+                .id(UUID.randomUUID())
+                .build();
+
+        InvalidCartDataException exception =
+                assertThrows(
+                        InvalidCartDataException.class,
+                        () -> cartService.addToCart(
+                                user,
+                                null
+                        )
+                );
+
+        assertEquals(
+                "Cart request is required.",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(
+                cartItemRepository,
+                productRepository
+        );
+    }
+
+    @Test
+    void addToCartShouldRejectMissingProductId() {
+        User user = User.builder()
+                .id(UUID.randomUUID())
+                .build();
+
+        AddToCartRequest request =
+                new AddToCartRequest();
+
+        request.setQuantity(1);
+
+        InvalidCartDataException exception =
+                assertThrows(
+                        InvalidCartDataException.class,
+                        () -> cartService.addToCart(
+                                user,
+                                request
+                        )
+                );
+
+        assertEquals(
+                "Product id is required.",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(
+                cartItemRepository,
+                productRepository
+        );
+    }
+
+    @Test
+    void addToCartShouldRejectNullQuantity() {
+        User user = User.builder()
+                .id(UUID.randomUUID())
+                .build();
+
+        AddToCartRequest request =
+                new AddToCartRequest();
+
+        request.setProductId(UUID.randomUUID());
+        request.setQuantity(null);
+
+        InvalidCartDataException exception =
+                assertThrows(
+                        InvalidCartDataException.class,
+                        () -> cartService.addToCart(
+                                user,
+                                request
+                        )
+                );
+
+        assertEquals(
+                "Cart quantity is required.",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(
+                cartItemRepository,
+                productRepository
+        );
+    }
+
+    @Test
+    void addToCartShouldRejectNonPositiveQuantity() {
+        User user = User.builder()
+                .id(UUID.randomUUID())
+                .build();
+
+        AddToCartRequest request =
+                new AddToCartRequest();
+
+        request.setProductId(UUID.randomUUID());
+        request.setQuantity(0);
+
+        InvalidCartDataException exception =
+                assertThrows(
+                        InvalidCartDataException.class,
+                        () -> cartService.addToCart(
+                                user,
+                                request
+                        )
+                );
+
+        assertEquals(
+                "Cart quantity must be positive.",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(
+                cartItemRepository,
+                productRepository
+        );
+    }
 }

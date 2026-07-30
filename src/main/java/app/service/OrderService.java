@@ -54,6 +54,7 @@ public class OrderService {
         BigDecimal totalPrice = BigDecimal.ZERO;
 
         for (CartItem cartItem : cartItems) {
+            validateCartItemForOrder(cartItem);
             Product product = cartItem.getProduct();
 
             if(cartItem.getQuantity()>product.getItems()){
@@ -161,11 +162,21 @@ public class OrderService {
     @Transactional
     public OrderResponse updateStatus(UUID orderId, UpdateOrderStatusRequest request) {
         if (orderId == null) {
-            throw new InvalidOrderDataException("Order id is required");
+            throw new InvalidOrderDataException(
+                    "Order id is required."
+            );
         }
 
-        if (request == null || request.getStatus() == null) {
-            throw new InvalidOrderDataException("Order status is required");
+        if (request == null) {
+            throw new InvalidOrderDataException(
+                    "Order status request is required."
+            );
+        }
+
+        if (request.getStatus() == null) {
+            throw new InvalidOrderDataException(
+                    "Order status is required."
+            );
         }
 
         Order order = orderRepository.findById(orderId)
@@ -185,5 +196,59 @@ public class OrderService {
         );
 
         return mapToOrderResponse(savedOrder);
+    }
+
+    private void validateCartItemForOrder(
+            CartItem cartItem) {
+
+        if (cartItem == null) {
+            throw new InvalidOrderDataException(
+                    "Cart item is required."
+            );
+        }
+
+        if (cartItem.getProduct() == null) {
+            throw new InvalidOrderDataException(
+                    "Cart product is required."
+            );
+        }
+
+        if (cartItem.getQuantity() == null) {
+            throw new InvalidOrderDataException(
+                    "Cart item quantity is required."
+            );
+        }
+
+        if (cartItem.getQuantity() <= 0) {
+            throw new InvalidOrderDataException(
+                    "Cart item quantity must be positive."
+            );
+        }
+
+        Product product = cartItem.getProduct();
+
+        if (!Boolean.TRUE.equals(product.getIsActive())) {
+            throw new InvalidOrderDataException(
+                    "Product is not active: " + product.getName()
+            );
+        }
+
+        if (product.getItems() == null
+                || product.getItems() < 0) {
+
+            throw new InvalidOrderDataException(
+                    "Product inventory is invalid: "
+                            + product.getName()
+            );
+        }
+
+        if (product.getPrice() == null
+                || product.getPrice().signum() <= 0) {
+
+            throw new InvalidOrderDataException(
+                    "Product price is invalid: "
+                            + product.getName()
+            );
+        }
     }
 }

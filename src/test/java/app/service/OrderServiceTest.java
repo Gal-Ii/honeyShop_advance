@@ -15,6 +15,8 @@ import app.model.entity.order.OrderStatus;
 import app.model.entity.product.Product;
 import app.web.dto.order.OrderResponse;
 import app.web.dto.order.UpdateOrderStatusRequest;
+import app.web.dto.review.CreateReviewRequest;
+import app.web.dto.review.UpdateReviewRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -399,7 +401,7 @@ class OrderServiceTest {
         );
 
         assertEquals(
-                "Order id is required",
+                "Order id is required.",
                 exception.getMessage()
         );
 
@@ -425,7 +427,7 @@ class OrderServiceTest {
         );
 
         assertEquals(
-                "Order status is required",
+                "Order status is required.",
                 exception.getMessage()
         );
 
@@ -434,5 +436,137 @@ class OrderServiceTest {
                 orderRepository,
                 orderItemRepository
         );
+    }
+
+    @Test
+    void createOrderShouldRejectCartItemWithoutProduct() {
+        CartItem cartItem = CartItem.builder()
+                .quantity(1)
+                .build();
+
+        assertInvalidCartItem(
+                cartItem,
+                "Cart product is required."
+        );
+    }
+
+    @Test
+    void createOrderShouldRejectNullCartQuantity() {
+        Product product = validProduct();
+
+        CartItem cartItem = CartItem.builder()
+                .product(product)
+                .quantity(null)
+                .build();
+
+        assertInvalidCartItem(
+                cartItem,
+                "Cart item quantity is required."
+        );
+    }
+
+    @Test
+    void createOrderShouldRejectNonPositiveCartQuantity() {
+        Product product = validProduct();
+
+        CartItem cartItem = CartItem.builder()
+                .product(product)
+                .quantity(0)
+                .build();
+
+        assertInvalidCartItem(
+                cartItem,
+                "Cart item quantity must be positive."
+        );
+    }
+
+    @Test
+    void createOrderShouldRejectInactiveProduct() {
+        Product product = validProduct();
+        product.setIsActive(false);
+
+        CartItem cartItem = CartItem.builder()
+                .product(product)
+                .quantity(1)
+                .build();
+
+        assertInvalidCartItem(
+                cartItem,
+                "Product is not active: Acacia honey"
+        );
+    }
+
+    @Test
+    void createOrderShouldRejectInvalidInventory() {
+        Product product = validProduct();
+        product.setItems(null);
+
+        CartItem cartItem = CartItem.builder()
+                .product(product)
+                .quantity(1)
+                .build();
+
+        assertInvalidCartItem(
+                cartItem,
+                "Product inventory is invalid: Acacia honey"
+        );
+    }
+
+    @Test
+    void createOrderShouldRejectInvalidProductPrice() {
+        Product product = validProduct();
+        product.setPrice(BigDecimal.ZERO);
+
+        CartItem cartItem = CartItem.builder()
+                .product(product)
+                .quantity(1)
+                .build();
+
+        assertInvalidCartItem(
+                cartItem,
+                "Product price is invalid: Acacia honey"
+        );
+    }
+
+    private void assertInvalidCartItem(
+            CartItem cartItem,
+            String expectedMessage) {
+
+        User user = User.builder()
+                .id(UUID.randomUUID())
+                .build();
+
+        when(cartItemRepository.findAllByUser(user))
+                .thenReturn(List.of(cartItem));
+
+        InvalidOrderDataException exception =
+                assertThrows(
+                        InvalidOrderDataException.class,
+                        () -> orderService.createOrder(user)
+                );
+
+        assertEquals(
+                expectedMessage,
+                exception.getMessage()
+        );
+
+        verify(cartItemRepository).findAllByUser(user);
+
+        verifyNoInteractions(
+                orderRepository,
+                orderItemRepository
+        );
+
+        verifyNoMoreInteractions(cartItemRepository);
+    }
+
+    private Product validProduct() {
+        return Product.builder()
+                .id(UUID.randomUUID())
+                .name("Acacia honey")
+                .price(new BigDecimal("10.00"))
+                .items(10)
+                .isActive(true)
+                .build();
     }
 }

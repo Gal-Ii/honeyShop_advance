@@ -49,9 +49,7 @@ public class CartService {
             throw new UnauthorizedActionException("User must be logged in.");
         }
 
-        if(request == null){
-            throw new InvalidCartDataException("Cart request is required.");
-        }
+        validateAddToCartRequest(request);
 
         Product product = productRepository.findById(request.getProductId())
                 .orElseThrow(() -> new ProductNotFoundException("Product does not exist"));
@@ -105,7 +103,9 @@ public class CartService {
         }
 
         if(cartItemId == null){
-            throw new InvalidCartDataException("Cart item id is required");
+            throw new InvalidCartDataException(
+                    "Cart item id is required"
+            );
         }
 
         CartItem cartItem = cartItemRepository.findById(cartItemId)
@@ -169,5 +169,33 @@ public class CartService {
         }
 
         return removedItems;
+    }
+
+    private void validateAddToCartRequest(
+            AddToCartRequest request) {
+
+        if (request == null) {
+            throw new InvalidCartDataException(
+                    "Cart request is required."
+            );
+        }
+
+        if (request.getProductId() == null) {
+            throw new InvalidCartDataException(
+                    "Product id is required."
+            );
+        }
+
+        if (request.getQuantity() == null) {
+            throw new InvalidCartDataException(
+                    "Cart quantity is required."
+            );
+        }
+
+        if (request.getQuantity() <= 0) {
+            throw new InvalidCartDataException(
+                    "Cart quantity must be positive."
+            );
+        }
     }
 }

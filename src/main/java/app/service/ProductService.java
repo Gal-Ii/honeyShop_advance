@@ -17,6 +17,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -61,15 +62,14 @@ public class ProductService {
     )
     @PreAuthorize("hasAuthority('PRODUCT_CREATE')")
     public Product create(ProductCreateRequest request, User currentUser) {
-        if (request == null) {
-            throw new InvalidProductDataException("Product request is required.");
-        }
+
+        validateCreateRequest(request);
 
         if (currentUser == null) {
             throw new UnauthorizedActionException("User must be logged in.");
         }
 
-        String name = request.getName() == null ? null : request.getName().trim();
+        String name = request.getName().trim();
 
         if (productRepository.existsByName(name)) {
             throw new ProductAlreadyExistsException("Product with this name already exists.");
@@ -112,6 +112,14 @@ public class ProductService {
     @PreAuthorize("hasAuthority('PRODUCT_UPDATE')")
     public Product update(UUID id, ProductUpdateRequest updateRequest, User currentUser) {
 
+        if (id == null) {
+            throw new InvalidProductDataException(
+                    "Product id is required."
+            );
+        }
+
+        validateUpdateRequest(updateRequest);
+
         Product updatedProduct = productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException("Product does not exist."));
 
@@ -119,11 +127,7 @@ public class ProductService {
             throw new UnauthorizedActionException("User must be logged in.");
         }
 
-        String name = updateRequest.getName() == null ? null : updateRequest.getName().trim();
-
-        if (name == null || name.isBlank()) {
-            throw new InvalidProductDataException("Product name is required.");
-        }
+        String name = updateRequest.getName().trim();
 
         if (productRepository.existsByNameAndIdNot(name, id)) {
             throw new ProductAlreadyExistsException("Product with this name already exists.");
@@ -163,6 +167,13 @@ public class ProductService {
     })
     @PreAuthorize("hasAuthority('PRODUCT_DELETE')")
     public Product delete(UUID id, User currentUser) {
+
+        if (id == null) {
+            throw new InvalidProductDataException(
+                    "Product id is required."
+            );
+        }
+
         if (currentUser == null) {
             throw new UnauthorizedActionException("User must be logged in.");
         }
@@ -218,5 +229,118 @@ public class ProductService {
         );
 
         return products.size();
+    }
+
+    private void validateCreateRequest(
+            ProductCreateRequest request) {
+
+        if (request == null) {
+            throw new InvalidProductDataException(
+                    "Product request is required."
+            );
+        }
+
+        validateProductData(
+                request.getName(),
+                request.getDescription(),
+                request.getPrice(),
+                request.getImageUrl(),
+                request.getItems(),
+                request.getIsActive()
+        );
+    }
+
+    private void validateUpdateRequest(
+            ProductUpdateRequest request) {
+
+        if (request == null) {
+            throw new InvalidProductDataException(
+                    "Product update request is required."
+            );
+        }
+
+        validateProductData(
+                request.getName(),
+                request.getDescription(),
+                request.getPrice(),
+                request.getImageUrl(),
+                request.getItems(),
+                request.getIsActive()
+        );
+    }
+
+    private void validateProductData(
+            String name,
+            String description,
+            BigDecimal price,
+            String imageUrl,
+            Integer items,
+            Boolean isActive) {
+
+        if (name == null || name.isBlank()) {
+            throw new InvalidProductDataException(
+                    "Product name is required."
+            );
+        }
+
+        String trimmedName = name.trim();
+
+        if (trimmedName.length() < 2
+                || trimmedName.length() > 100) {
+
+            throw new InvalidProductDataException(
+                    "Product name must be between 2 and 100 symbols."
+            );
+        }
+
+        if (description != null
+                && description.length() > 1000) {
+
+            throw new InvalidProductDataException(
+                    "Description must be up to 1000 symbols."
+            );
+        }
+
+        if (price == null) {
+            throw new InvalidProductDataException(
+                    "Product price is required."
+            );
+        }
+
+        if (price.signum() <= 0) {
+            throw new InvalidProductDataException(
+                    "Product price must be positive."
+            );
+        }
+
+        if (price.scale() > 2 || price.precision() - price.scale() > 8) {
+            throw new InvalidProductDataException(
+                    "Product price must have up to 8 whole digits and 2 decimal digits."
+            );
+        }
+
+        if (imageUrl != null && imageUrl.length() > 500) {
+            throw new InvalidProductDataException(
+                    "Image path must be up to 500 symbols."
+            );
+        }
+
+        if (items == null) {
+            throw new InvalidProductDataException(
+                    "Product quantity is required."
+            );
+        }
+
+        if (items < 0) {
+            throw new InvalidProductDataException(
+                    "Product quantity cannot be negative."
+            );
+        }
+
+        if (isActive == null) {
+            throw new InvalidProductDataException(
+                    "Product active status is required."
+            );
+        }
     }
 }

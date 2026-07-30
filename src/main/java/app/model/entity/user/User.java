@@ -3,6 +3,10 @@ package app.model.entity.user;
 import app.model.entity.cartitem.CartItem;
 import app.model.entity.order.Order;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -23,32 +27,54 @@ public class User {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(nullable = false)
+    @NotBlank(message = "User name is required.")
+    @Size(min = 3, max = 50,
+            message = "User name must be between 3 and 50 symbols.")
+    @Column(nullable = false, length = 50)
     private String name;
 
+    @NotNull(message = "Gender is required.")
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Gender gender;
 
+    @Size(max = 500,
+            message = "Profile picture URL must be up to 500 symbols.")
+    @Column(length = 500)
     private String profilePicture;
 
-    @Column(unique = true)
+    @NotBlank(message = "Email is required.")
+    @Email(message = "Please enter a valid email address.")
+    @Size(max = 100,
+            message = "Email must be up to 100 symbols.")
+    @Column(nullable = false, unique = true, length = 100)
     private String email;
 
-    @Column(nullable = false)
+    @NotBlank(message = "Password is required.")
+    @Size(max = 100,
+            message = "Encoded password must be up to 100 symbols.")
+    @Column(nullable = false, length = 100)
     private String password;
 
+    @NotNull(message = "User role is required.")
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
     private UserRole role;
 
+    @NotNull(message = "Country is required.")
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
     private Country country;
 
+    @NotNull(message = "User active status is required.")
+    @Column(nullable = false)
     private Boolean isActive;
 
-    @Column(nullable = false)
+    @NotNull(message = "Creation date is required.")
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdOn;
 
+    @NotNull(message = "Update date is required.")
     @Column(nullable = false)
     private LocalDateTime updatedOn;
 
