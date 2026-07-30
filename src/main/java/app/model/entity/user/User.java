@@ -54,9 +54,11 @@ public class User {
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "user")
     @OrderBy("createdOn DESC")
+    @Builder.Default
     private List<Order> orders = new ArrayList<>();
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "user")
     @OrderBy("createdOn DESC")
+    @Builder.Default
     private List<CartItem> cartItems = new ArrayList<>();
 }

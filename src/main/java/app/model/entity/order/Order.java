@@ -42,5 +42,6 @@ public class Order {
     private LocalDateTime updatedOn;
 
     @OneToMany(fetch = FetchType.LAZY, mappedBy = "order")
-    private List<OrderItem>orderItems = new ArrayList<>();
+    @Builder.Default
+    private List<OrderItem> orderItems = new ArrayList<>();
 }

@@ -24,5 +24,6 @@ public class OrderResponse {
     private BigDecimal totalPrice;
     private OrderStatus status;
     private LocalDateTime createdOn;
+    @Builder.Default
     private List<OrderItemResponse> items = new ArrayList<>();
 }
