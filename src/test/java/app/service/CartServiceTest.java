@@ -17,6 +17,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.Optional;
@@ -411,5 +412,35 @@ class CartServiceTest {
                 cartItemRepository,
                 productRepository
         );
+    }
+
+    @Test
+    void removeExpiredCartItemsShouldDeleteItemsCreatedBeforeExpirationDate() {
+
+        LocalDateTime expirationDate =
+                LocalDateTime.now().minusDays(7);
+
+        when(cartItemRepository
+                .deleteAllByCreatedOnBefore(expirationDate))
+                .thenReturn(3);
+
+        int removedItems =
+                cartService.removeExpiredCartItems(expirationDate);
+
+        assertEquals(3, removedItems);
+
+        verify(cartItemRepository)
+                .deleteAllByCreatedOnBefore(expirationDate);
+    }
+
+    @Test
+    void removeExpiredCartItemsShouldRejectNullExpirationDate() {
+
+        assertThrows(
+                InvalidCartDataException.class,
+                () -> cartService.removeExpiredCartItems(null)
+        );
+
+        verifyNoInteractions(cartItemRepository);
     }
 }

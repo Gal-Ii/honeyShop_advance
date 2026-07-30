@@ -13,6 +13,7 @@ import app.web.dto.cart.AddToCartRequest;
 import app.web.dto.cart.CartItemResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -145,5 +146,28 @@ public class CartService {
                 .quantity(cartItem.getQuantity())
                 .totalPrice(product.getPrice().multiply(BigDecimal.valueOf(cartItem.getQuantity())))
                 .build();
+    }
+
+    @Transactional
+    public int removeExpiredCartItems(LocalDateTime expirationDate) {
+
+        if (expirationDate == null) {
+            throw new InvalidCartDataException(
+                    "Cart expiration date is required."
+            );
+        }
+
+        int removedItems =
+                cartItemRepository.deleteAllByCreatedOnBefore(expirationDate);
+
+        if (removedItems > 0) {
+            log.info(
+                    "Removed [{}] expired cart items created before [{}].",
+                    removedItems,
+                    expirationDate
+            );
+        }
+
+        return removedItems;
     }
 }
