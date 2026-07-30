@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 @ControllerAdvice
 @Slf4j
@@ -55,6 +56,21 @@ public class GlobalExceptionHandler {
         modelAndView.addObject(
                 "errorMessage",
                 "Нямате право да извършите тази операция."
+        );
+
+        return modelAndView;
+    }
+
+    @ExceptionHandler(NoResourceFoundException.class)
+    public ModelAndView handleMissingResource() {
+
+        ModelAndView modelAndView =
+                new ModelAndView("error/404");
+
+        modelAndView.setStatus(HttpStatus.NOT_FOUND);
+        modelAndView.addObject(
+                "errorMessage",
+                "The requested resource was not found."
         );
 
         return modelAndView;
