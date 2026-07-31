@@ -130,23 +130,7 @@ public class ProductController {
             @PathVariable UUID id,
             Model model) {
 
-        Product product = productService.getById(id);
-        User currentUser = userService.getCurrentUser();
-
-        model.addAttribute("product", product);
-        model.addAttribute("currentUserId", currentUser.getId());
-        model.addAttribute(
-                "reviews",
-                reviewService.getReviewsByProductId(id)
-        );
-        model.addAttribute(
-                "createReviewRequest",
-                new CreateReviewRequest()
-        );
-        model.addAttribute(
-                "updateReviewRequest",
-                new UpdateReviewRequest()
-        );
+        populateProductDetailsModel(id, model);
 
         return "product-details";
     }
@@ -154,42 +138,27 @@ public class ProductController {
     @PostMapping("/products/{id}/reviews")
     public String createReview(
             @PathVariable UUID id,
-            @Valid @ModelAttribute("createReviewRequest")
+            @Valid
+            @ModelAttribute("createReviewRequest")
             CreateReviewRequest request,
             BindingResult bindingResult,
             Model model) {
 
         if (bindingResult.hasErrors()) {
-            model.addAttribute("product", productService.getById(id));
-            model.addAttribute(
-                    "reviews",
-                    reviewService.getReviewsByProductId(id)
-            );
-
+            populateProductDetailsModel(id, model);
             return "product-details";
         }
 
-        User currentUser = userService.getCurrentUser();
-
-        request.setProductId(id);
-        request.setUserId(currentUser.getId());
-        request.setAuthorName(currentUser.getName());
-
         try {
-            reviewService.createReview(request);
+            reviewService.createReview(id, request);
         } catch (FeignException.Conflict exception) {
-
             bindingResult.rejectValue(
                     "comment",
                     "review.already.exists",
                     "Вече сте оставили отзив за този продукт."
             );
 
-            model.addAttribute("product", productService.getById(id));
-            model.addAttribute(
-                    "reviews",
-                    reviewService.getReviewsByProductId(id)
-            );
+            populateProductDetailsModel(id, model);
 
             return "product-details";
         }
@@ -201,59 +170,29 @@ public class ProductController {
     public String updateReview(
             @PathVariable UUID productId,
             @PathVariable UUID reviewId,
-            @Valid @ModelAttribute("updateReviewRequest")
+            @Valid
+            @ModelAttribute("updateReviewRequest")
             UpdateReviewRequest request,
             BindingResult bindingResult,
             Model model) {
 
-        User currentUser = userService.getCurrentUser();
-        request.setUserId(currentUser.getId());
-
         if (bindingResult.hasErrors()) {
-            model.addAttribute(
-                    "product",
-                    productService.getById(productId)
-            );
-            model.addAttribute(
-                    "currentUserId",
-                    currentUser.getId()
-            );
-            model.addAttribute(
-                    "reviews",
-                    reviewService.getReviewsByProductId(productId)
-            );
-            model.addAttribute(
-                    "createReviewRequest",
-                    new CreateReviewRequest()
-            );
-
+            populateProductDetailsModel(productId, model);
             return "product-details";
         }
 
         try {
-            reviewService.updateReview(reviewId, request);
+            reviewService.updateReview(
+                    reviewId,
+                    request
+            );
         } catch (FeignException.Forbidden exception) {
             bindingResult.reject(
                     "review.update.forbidden",
-                    "Нямате право да редактирате това ревю."
+                    "Нямате право да редактирате този отзив."
             );
 
-            model.addAttribute(
-                    "product",
-                    productService.getById(productId)
-            );
-            model.addAttribute(
-                    "currentUserId",
-                    currentUser.getId()
-            );
-            model.addAttribute(
-                    "reviews",
-                    reviewService.getReviewsByProductId(productId)
-            );
-            model.addAttribute(
-                    "createReviewRequest",
-                    new CreateReviewRequest()
-            );
+            populateProductDetailsModel(productId, model);
 
             return "product-details";
         }
@@ -266,10 +205,44 @@ public class ProductController {
             @PathVariable UUID productId,
             @PathVariable UUID reviewId) {
 
-        User currentUser = userService.getCurrentUser();
-
-        reviewService.deleteReview(reviewId, currentUser.getId());
+        reviewService.deleteReview(reviewId);
 
         return "redirect:/products/" + productId;
+    }
+
+    private void populateProductDetailsModel(
+            UUID productId,
+            Model model) {
+
+        User currentUser = userService.getCurrentUser();
+
+        model.addAttribute(
+                "product",
+                productService.getById(productId)
+        );
+
+        model.addAttribute(
+                "currentUserId",
+                currentUser.getId()
+        );
+
+        model.addAttribute(
+                "reviews",
+                reviewService.getReviewsByProductId(productId)
+        );
+
+        if (!model.containsAttribute("createReviewRequest")) {
+            model.addAttribute(
+                    "createReviewRequest",
+                    new CreateReviewRequest()
+            );
+        }
+
+        if (!model.containsAttribute("updateReviewRequest")) {
+            model.addAttribute(
+                    "updateReviewRequest",
+                    new UpdateReviewRequest()
+            );
+        }
     }
 }

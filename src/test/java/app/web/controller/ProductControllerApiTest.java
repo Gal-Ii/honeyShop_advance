@@ -307,20 +307,10 @@ class ProductControllerApiTest {
 
     @Test
     @WithMockUser
-    void createReviewShouldPopulateUserDataAndRedirect()
+    void createReviewShouldDelegateRequestAndRedirect()
             throws Exception {
 
         UUID productId = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
-
-        User currentUser = User.builder()
-                .id(userId)
-                .name("Ivan Ivanov")
-                .email("ivan@example.com")
-                .build();
-
-        when(userService.getCurrentUser())
-                .thenReturn(currentUser);
 
         mockMvc.perform(post(
                         "/products/{id}/reviews",
@@ -337,36 +327,26 @@ class ProductControllerApiTest {
                         "/products/" + productId
                 ));
 
-        verify(userService).getCurrentUser();
-
-        verify(reviewService).createReview(argThat(request ->
-                productId.equals(request.getProductId())
-                        && userId.equals(request.getUserId())
-                        && "Ivan Ivanov".equals(
-                        request.getAuthorName()
+        verify(reviewService).createReview(
+                eq(productId),
+                argThat(request ->
+                        request.getUserId() == null
+                                && request.getProductId() == null
+                                && request.getAuthorName() == null
+                                && request.getRating() == 5
+                                && "Excellent natural honey product."
+                                .equals(request.getComment())
                 )
-                        && request.getRating() == 5
-                        && "Excellent natural honey product."
-                        .equals(request.getComment())
-        ));
+        );
     }
 
     @Test
     @WithMockUser
-    void updateReviewShouldSetUserIdAndRedirect()
+    void updateReviewShouldDelegateRequestAndRedirect()
             throws Exception {
 
         UUID productId = UUID.randomUUID();
         UUID reviewId = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
-
-        User currentUser = User.builder()
-                .id(userId)
-                .name("Ivan Ivanov")
-                .build();
-
-        when(userService.getCurrentUser())
-                .thenReturn(currentUser);
 
         mockMvc.perform(post(
                         "/products/{productId}/reviews/{reviewId}/update",
@@ -384,12 +364,10 @@ class ProductControllerApiTest {
                         "/products/" + productId
                 ));
 
-        verify(userService).getCurrentUser();
-
         verify(reviewService).updateReview(
                 eq(reviewId),
                 argThat(request ->
-                        userId.equals(request.getUserId())
+                        request.getUserId() == null
                                 && request.getRating() == 4
                                 && "Updated review comment."
                                 .equals(request.getComment())
@@ -399,19 +377,11 @@ class ProductControllerApiTest {
 
     @Test
     @WithMockUser
-    void deleteReviewShouldUseCurrentUserAndRedirect()
+    void deleteReviewShouldDelegateAndRedirect()
             throws Exception {
 
         UUID productId = UUID.randomUUID();
         UUID reviewId = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
-
-        User currentUser = User.builder()
-                .id(userId)
-                .build();
-
-        when(userService.getCurrentUser())
-                .thenReturn(currentUser);
 
         mockMvc.perform(post(
                         "/products/{productId}/reviews/{reviewId}/delete",
@@ -423,11 +393,6 @@ class ProductControllerApiTest {
                         "/products/" + productId
                 ));
 
-        verify(userService).getCurrentUser();
-
-        verify(reviewService).deleteReview(
-                reviewId,
-                userId
-        );
+        verify(reviewService).deleteReview(reviewId);
     }
 }
