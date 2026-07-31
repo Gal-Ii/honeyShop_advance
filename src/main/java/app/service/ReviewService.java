@@ -5,6 +5,9 @@ import app.model.entity.user.User;
 import app.web.dto.review.CreateReviewRequest;
 import app.web.dto.review.ReviewResponse;
 import app.web.dto.review.UpdateReviewRequest;
+import app.exception.ReviewAlreadyExistsException;
+import app.exception.UnauthorizedReviewOperationException;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -39,8 +42,17 @@ public class ReviewService {
                         .comment(formRequest.getComment())
                         .build();
 
-        ReviewResponse createdReview =
-                reviewFeignClient.createReview(serviceRequest);
+        ReviewResponse createdReview;
+
+        try {
+            createdReview =
+                    reviewFeignClient.createReview(serviceRequest);
+        } catch (FeignException.Conflict exception) {
+            throw new ReviewAlreadyExistsException(
+                    "You have already reviewed this product.",
+                    exception
+            );
+        }
 
         log.info(
                 "Review created through review service: reviewId={}, productId={}, userId={}",
@@ -65,11 +77,20 @@ public class ReviewService {
                         .comment(formRequest.getComment())
                         .build();
 
-        ReviewResponse updatedReview =
-                reviewFeignClient.updateReview(
-                        reviewId,
-                        serviceRequest
-                );
+        ReviewResponse updatedReview;
+
+        try {
+            updatedReview =
+                    reviewFeignClient.updateReview(
+                            reviewId,
+                            serviceRequest
+                    );
+        } catch (FeignException.Forbidden exception) {
+            throw new UnauthorizedReviewOperationException(
+                    "You cannot update another user's review.",
+                    exception
+            );
+        }
 
         log.info(
                 "Review updated through review service: reviewId={}, userId={}",
@@ -83,10 +104,17 @@ public class ReviewService {
     public void deleteReview(UUID reviewId) {
         User currentUser = userService.getCurrentUser();
 
-        reviewFeignClient.deleteReview(
-                reviewId,
-                currentUser.getId()
-        );
+        try {
+            reviewFeignClient.deleteReview(
+                    reviewId,
+                    currentUser.getId()
+            );
+        } catch (FeignException.Forbidden exception) {
+            throw new UnauthorizedReviewOperationException(
+                    "You cannot delete another user's review.",
+                    exception
+            );
+        }
 
         log.info(
                 "Review deleted through review service: reviewId={}, userId={}",

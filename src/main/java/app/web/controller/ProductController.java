@@ -20,7 +20,8 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import app.exception.ProductAlreadyExistsException;
-import feign.FeignException;
+import app.exception.ReviewAlreadyExistsException;
+import app.exception.UnauthorizedReviewOperationException;
 
 import java.util.UUID;
 
@@ -151,7 +152,7 @@ public class ProductController {
 
         try {
             reviewService.createReview(id, request);
-        } catch (FeignException.Conflict exception) {
+        } catch (ReviewAlreadyExistsException exception) {
             bindingResult.rejectValue(
                     "comment",
                     "review.already.exists",
@@ -186,7 +187,7 @@ public class ProductController {
                     reviewId,
                     request
             );
-        } catch (FeignException.Forbidden exception) {
+        } catch (UnauthorizedReviewOperationException exception) {
             bindingResult.reject(
                     "review.update.forbidden",
                     "Нямате право да редактирате този отзив."
