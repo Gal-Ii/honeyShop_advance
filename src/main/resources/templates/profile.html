@@ -71,9 +71,15 @@
                          th:src="@{/images/default-avatar-woman.png}"
                          alt="Profile picture"
                          class="profile-avatar">
-                    <label for='profileUpload' class='profile-upload-button'>Смени снимка</label>
-                    <input type='file' id='profileUpload' name='profileUpload' accept='image/*' hidden>
-                    <small>PNG или JPG файл</small>
+
+                    <a th:href="@{/profile/edit}"
+                       class="btn">
+                        Смени снимката
+                    </a>
+
+                    <small>
+                        Снимката се променя чрез URL в редакцията на профила.
+                    </small>
                 </aside>
             </div>
         </div>

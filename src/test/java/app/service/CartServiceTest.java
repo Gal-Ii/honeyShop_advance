@@ -384,37 +384,6 @@ class CartServiceTest {
     }
 
     @Test
-    void clearCartShouldDeleteAllItemsForUser() {
-        User user = User.builder()
-                .id(UUID.randomUUID())
-                .build();
-
-        cartService.clearCart(user);
-
-        verify(cartItemRepository).deleteAllByUser(user);
-        verifyNoInteractions(productRepository);
-        verifyNoMoreInteractions(cartItemRepository);
-    }
-
-    @Test
-    void clearCartShouldThrowExceptionWhenUserIsNull() {
-        UnauthorizedActionException exception = assertThrows(
-                UnauthorizedActionException.class,
-                () -> cartService.clearCart(null)
-        );
-
-        assertEquals(
-                "User must be logged in.",
-                exception.getMessage()
-        );
-
-        verifyNoInteractions(
-                cartItemRepository,
-                productRepository
-        );
-    }
-
-    @Test
     void removeExpiredCartItemsShouldDeleteItemsCreatedBeforeExpirationDate() {
 
         LocalDateTime expirationDate =
@@ -556,6 +525,113 @@ class CartServiceTest {
 
         assertEquals(
                 "Cart quantity must be positive.",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(
+                cartItemRepository,
+                productRepository
+        );
+    }
+
+    @Test
+    void calculateCartTotalShouldSumItemTotals() {
+        List<CartItemResponse> cartItems = List.of(
+                CartItemResponse.builder()
+                        .totalPrice(new BigDecimal("12.50"))
+                        .build(),
+                CartItemResponse.builder()
+                        .totalPrice(new BigDecimal("7.50"))
+                        .build()
+        );
+
+        BigDecimal result =
+                cartService.calculateCartTotal(cartItems);
+
+        assertEquals(new BigDecimal("20.00"), result);
+
+        verifyNoInteractions(
+                cartItemRepository,
+                productRepository
+        );
+    }
+
+    @Test
+    void calculateCartTotalShouldReturnZeroForEmptyCart() {
+        BigDecimal result =
+                cartService.calculateCartTotal(List.of());
+
+        assertEquals(BigDecimal.ZERO, result);
+
+        verifyNoInteractions(
+                cartItemRepository,
+                productRepository
+        );
+    }
+
+    @Test
+    void calculateCartTotalShouldRejectNullCartItems() {
+        InvalidCartDataException exception = assertThrows(
+                InvalidCartDataException.class,
+                () -> cartService.calculateCartTotal(null)
+        );
+
+        assertEquals(
+                "Cart items are required.",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(
+                cartItemRepository,
+                productRepository
+        );
+    }
+
+    @Test
+    void getCartItemCountShouldReturnSummedQuantity() {
+        User user = User.builder()
+                .id(UUID.randomUUID())
+                .build();
+
+        when(cartItemRepository.sumQuantityByUser(user))
+                .thenReturn(5L);
+
+        long result = cartService.getCartItemCount(user);
+
+        assertEquals(5L, result);
+
+        verify(cartItemRepository).sumQuantityByUser(user);
+        verifyNoInteractions(productRepository);
+        verifyNoMoreInteractions(cartItemRepository);
+    }
+
+    @Test
+    void getCartItemCountShouldReturnZeroForEmptyCart() {
+        User user = User.builder()
+                .id(UUID.randomUUID())
+                .build();
+
+        when(cartItemRepository.sumQuantityByUser(user))
+                .thenReturn(null);
+
+        long result = cartService.getCartItemCount(user);
+
+        assertEquals(0L, result);
+
+        verify(cartItemRepository).sumQuantityByUser(user);
+        verifyNoInteractions(productRepository);
+        verifyNoMoreInteractions(cartItemRepository);
+    }
+
+    @Test
+    void getCartItemCountShouldRejectNullUser() {
+        UnauthorizedActionException exception = assertThrows(
+                UnauthorizedActionException.class,
+                () -> cartService.getCartItemCount(null)
+        );
+
+        assertEquals(
+                "User must be logged in.",
                 exception.getMessage()
         );
 

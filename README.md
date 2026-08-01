@@ -248,8 +248,8 @@ mvn verify
 ```
 
 The project contains unit, integration, MVC controller, and API tests. JaCoCo
-enforces a minimum of 70% line coverage. At the latest verification, all 72
-tests passed and the measured line coverage was 70.27%.
+enforces a minimum of 70% line coverage. At the latest verification, all 158
+tests passed and the measured line coverage was 78.85%.
 
 ## Repository
 

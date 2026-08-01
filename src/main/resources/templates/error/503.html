@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="bg" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>HoneyShop - Услугата не е достъпна</title>
+
+    <link rel="stylesheet"
+          th:href="@{/css/style.css}">
+</head>
+<body>
+
+<div class="top-strip">
+    🐝 HoneyShop — натурален мед и пчелни продукти
+</div>
+
+<main class="container">
+    <section class="auth-card">
+
+        <h1>503</h1>
+
+        <h2>Услугата временно не е достъпна</h2>
+
+        <p th:text="${errorMessage}">
+            Моля опитайте отново след малко.
+        </p>
+
+        <div>
+            <a class="btn"
+               th:href="@{/index}">
+                Към началната страница
+            </a>
+
+            <a class="btn light"
+               th:href="@{/products}">
+                Към магазина
+            </a>
+        </div>
+
+    </section>
+</main>
+
+<footer class="site-footer">
+    <p>
+        &copy; 2026 HoneyShop. Всички права запазени.
+    </p>
+</footer>
+
+</body>
+</html>

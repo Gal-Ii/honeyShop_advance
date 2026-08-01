@@ -15,22 +15,27 @@ import lombok.NoArgsConstructor;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class RegisterRequest{
+public class RegisterRequest {
     @NotBlank(message = "Please write your first and last name.")
     @Size(min = 3, max = 50, message = "Name must be between 3 and 50 symbols.")
     private String name;
 
-    @NotBlank
+    @NotBlank(message = "Email is required.")
     @Email(message = "Please enter a valid email address.")
+    @Size(max = 100, message = "Email must be up to 100 symbols.")
     private String email;
 
-    @NotBlank
-    @Size(min = 6, message = "Password must be at least 6 symbols.")
+    @NotBlank(message = "Password is required.")
+    @Size(
+            min = 6,
+            max = 100,
+            message = "Password must be between 6 and 100 symbols."
+    )
     private String password;
 
-    @NotNull
+    @NotNull(message = "Country is required.")
     private Country country;
 
-    @NotNull
+    @NotNull(message = "Gender is required.")
     private Gender gender;
 }

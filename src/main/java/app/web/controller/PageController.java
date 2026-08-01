@@ -1,5 +1,6 @@
 package app.web.controller;
 
+import app.exception.UnauthorizedActionException;
 import app.model.entity.user.User;
 import app.service.ProductService;
 import app.service.UserService;
@@ -20,27 +21,27 @@ public class PageController {
     }
 
     @GetMapping({"/index", "/"})
-    public String indexPage(Model model){
+    public String indexPage(Model model) {
         model.addAttribute("products", productService.getAllActiveProducts());
         model.addAttribute("addToCartRequest", new AddToCartRequest());
         return "index";
     }
 
     @GetMapping("/profile")
-    public String profilePage(Model model){
+    public String profilePage(Model model) {
         try {
             User currentUser = userService.getCurrentUser();
             model.addAttribute("user", currentUser);
 
             return "profile";
-        }catch (RuntimeException e){
+        } catch (UnauthorizedActionException e) {
             return "redirect:/login";
         }
     }
 
     @GetMapping("/products")
-    public String productsPage(Model model){
-        model.addAttribute("products", productService.getAllProducts());
+    public String productsPage(Model model) {
+        model.addAttribute("products", productService.getAllActiveProducts());
         model.addAttribute("addToCartRequest", new AddToCartRequest());
 
         return "products";

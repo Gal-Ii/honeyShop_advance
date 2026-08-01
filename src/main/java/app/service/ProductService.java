@@ -50,6 +50,12 @@ public class ProductService {
     )
     public Product getById(UUID id) {
 
+        if (id == null) {
+            throw new InvalidProductDataException(
+                    "Product id is required."
+            );
+        }
+
         return productRepository.findById(id)
                 .orElseThrow(() -> new ProductNotFoundException(
                         "No product with [%s] id.".formatted(id)

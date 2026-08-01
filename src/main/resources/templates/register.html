@@ -61,12 +61,6 @@
                     <p class="error" th:if="${#fields.hasErrors('password')}" th:errors="*{password}"></p>
                 </div>
 
-                <div class='form-group'>
-                    <label for='profilePicture'>Профилна снимка</label>
-                    <input id='profilePicture' name='profilePicture' type='file' accept='image/*'>
-                    <div class='hint'>Може да се използва и URL поле, ако бекендът го изисква.</div>
-                </div>
-
                 <div class="form-group">
                     <label for="gender">Пол</label>
                     <select id="gender" th:field="*{gender}">
@@ -75,22 +69,6 @@
                         <option value="FEMALE">Жена</option>
                     </select>
                     <p class="error" th:if="${#fields.hasErrors('gender')}" th:errors="*{gender}"></p>
-                </div>
-
-                <div class='form-group'>
-                    <label>Примерни аватари</label>
-                    <div class='avatar-selector'>
-                        <div class='avatar-option'>
-                            <img src='avatar-man.png' alt='Мъжки аватар'>
-                            <strong>Аватар – мъж</strong>
-                            <small>Подходящ за default profile picture</small>
-                        </div>
-                        <div class='avatar-option'>
-                            <img src='avatar-woman.png' alt='Женски аватар'>
-                            <strong>Аватар – жена</strong>
-                            <small>Подходящ за default profile picture</small>
-                        </div>
-                    </div>
                 </div>
 
                 <button class='btn' type='submit'>Регистрирай се</button>

@@ -46,7 +46,10 @@
         <form th:action="@{/perform-logout}" method="post">
             <button class='action-pill dark' type="submit">Изход</button>
         </form>
-        <a class='cart-pill' th:href="@{/cart}"><span class='cart-icon'>🛒</span> 0</a>
+        <a class="cart-pill" th:href="@{/cart}">
+            <span class="cart-icon">🛒</span>
+            <span th:text="${cartItemCount}">0</span>
+        </a>
     </div>
 </div>
 </body>

@@ -621,4 +621,20 @@ class ProductServiceTest {
                 "Image path must be up to 500 symbols."
         );
     }
+
+    @Test
+    void getByIdShouldRejectNullId() {
+        InvalidProductDataException exception =
+                assertThrows(
+                        InvalidProductDataException.class,
+                        () -> productService.getById(null)
+                );
+
+        assertEquals(
+                "Product id is required.",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(productRepository);
+    }
 }

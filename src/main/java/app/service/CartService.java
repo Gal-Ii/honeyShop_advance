@@ -32,9 +32,9 @@ public class CartService {
         this.productRepository = productRepository;
     }
 
-    public List<CartItemResponse> getCart(User user){
+    public List<CartItemResponse> getCart(User user) {
 
-        if(user == null){
+        if (user == null) {
             throw new UnauthorizedActionException("User must be logged in.");
         }
 
@@ -44,8 +44,35 @@ public class CartService {
                 .toList();
     }
 
-    public CartItemResponse addToCart(User user, AddToCartRequest request){
-        if(user == null){
+    public long getCartItemCount(User user) {
+        if (user == null) {
+            throw new UnauthorizedActionException(
+                    "User must be logged in."
+            );
+        }
+
+        Long itemCount =
+                cartItemRepository.sumQuantityByUser(user);
+
+        return itemCount == null ? 0L : itemCount;
+    }
+
+    public BigDecimal calculateCartTotal(
+            List<CartItemResponse> cartItems) {
+
+        if (cartItems == null) {
+            throw new InvalidCartDataException(
+                    "Cart items are required."
+            );
+        }
+
+        return cartItems.stream()
+                .map(CartItemResponse::getTotalPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    public CartItemResponse addToCart(User user, AddToCartRequest request) {
+        if (user == null) {
             throw new UnauthorizedActionException("User must be logged in.");
         }
 
@@ -54,11 +81,11 @@ public class CartService {
         Product product = productRepository.findById(request.getProductId())
                 .orElseThrow(() -> new ProductNotFoundException("Product does not exist"));
 
-        if(!Boolean.TRUE.equals(product.getIsActive())){
+        if (!Boolean.TRUE.equals(product.getIsActive())) {
             throw new InvalidCartDataException("Product is not active");
         }
 
-        if(request.getQuantity()>product.getItems()){
+        if (request.getQuantity() > product.getItems()) {
             throw new NotEnoughQuantityException("Not enough product quantity.");
         }
 
@@ -66,7 +93,7 @@ public class CartService {
 
         LocalDateTime now = LocalDateTime.now();
 
-        if(cartItem == null){
+        if (cartItem == null) {
             cartItem = CartItem.builder()
                     .user(user)
                     .product(product)
@@ -74,10 +101,10 @@ public class CartService {
                     .createdOn(now)
                     .updatedOn(now)
                     .build();
-        }else {
+        } else {
             int newQuantity = cartItem.getQuantity() + request.getQuantity();
 
-            if(newQuantity> product.getItems()){
+            if (newQuantity > product.getItems()) {
                 throw new NotEnoughQuantityException("Not enough product quantity.");
             }
 
@@ -97,12 +124,12 @@ public class CartService {
         return mapToCartItemResponse(savedCartItem);
     }
 
-    public void removeFromCart(User user, UUID cartItemId){
-        if(user == null){
+    public void removeFromCart(User user, UUID cartItemId) {
+        if (user == null) {
             throw new UnauthorizedActionException("User must be logged in.");
         }
 
-        if(cartItemId == null){
+        if (cartItemId == null) {
             throw new InvalidCartDataException(
                     "Cart item id is required"
             );
@@ -111,7 +138,7 @@ public class CartService {
         CartItem cartItem = cartItemRepository.findById(cartItemId)
                 .orElseThrow(() -> new InvalidCartDataException("Cart item does not exist"));
 
-        if(!cartItem.getUser().getId().equals(user.getId())){
+        if (!cartItem.getUser().getId().equals(user.getId())) {
             throw new UnauthorizedActionException("Cart item does not belong to current user");
         }
         cartItemRepository.delete(cartItem);
@@ -123,18 +150,7 @@ public class CartService {
         );
     }
 
-    public void clearCart(User user){
-        if(user == null){
-            throw new UnauthorizedActionException("User must be logged in.");
-        }
-        cartItemRepository.deleteAllByUser(user);
-        log.info(
-                "Cart cleared: userId={}",
-                user.getId()
-        );
-    }
-
-    private CartItemResponse mapToCartItemResponse(CartItem cartItem){
+    private CartItemResponse mapToCartItemResponse(CartItem cartItem) {
         Product product = cartItem.getProduct();
 
         return CartItemResponse.builder()

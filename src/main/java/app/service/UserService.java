@@ -22,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 
 @Slf4j
 @Service
@@ -30,6 +31,11 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
+    private static final Pattern EMAIL_PATTERN =
+            Pattern.compile(
+                    "^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$"
+            );
+
     public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
@@ -37,7 +43,27 @@ public class UserService {
 
     public User register(RegisterRequest registerRequest){
 
-        String email = registerRequest.getEmail().trim().toLowerCase();
+        if (registerRequest == null) {
+            throw new InvalidUserDataException(
+                    "Registration request is required."
+            );
+        }
+
+        String name = normalizeAndValidateName(
+                registerRequest.getName()
+        );
+
+        String email = normalizeAndValidateEmail(
+                registerRequest.getEmail()
+        );
+
+        validatePassword(registerRequest.getPassword());
+
+        validateCountryAndGender(
+                registerRequest.getCountry(),
+                registerRequest.getGender()
+        );
+
         Optional<User>optionalUser = userRepository.findUserByEmail(email);
 
         if (optionalUser.isPresent()){
@@ -53,7 +79,7 @@ public class UserService {
         }
 
         User user = User.builder()
-                .name(registerRequest.getName())
+                .name(name)
                 .email(email)
                 .password(passwordEncoder.encode(registerRequest.getPassword()))
                 .country(registerRequest.getCountry())
@@ -82,7 +108,19 @@ public class UserService {
             throw new InvalidUserDataException("Default user properties are required.");
         }
 
-        String email = defaultUser.getEmail().trim().toLowerCase();
+        String name = normalizeAndValidateName(
+                defaultUser.getName()
+        );
+
+        String email = normalizeAndValidateEmail(
+                defaultUser.getEmail()
+        );
+
+        validatePassword(defaultUser.getPassword());
+
+        Country country = defaultUser.getCountry();
+        validateCountry(country);
+
         Optional<User> optionalUser = userRepository.findUserByEmail(email);
 
         if (optionalUser.isPresent()) {
@@ -105,10 +143,9 @@ public class UserService {
         }
 
         LocalDateTime now = LocalDateTime.now();
-        Country country = defaultUser.getCountry();
 
         User admin = User.builder()
-                .name(defaultUser.getName())
+                .name(name)
                 .email(email)
                 .password(passwordEncoder.encode(defaultUser.getPassword()))
                 .country(country)
@@ -147,9 +184,19 @@ public class UserService {
                         new UserNotFoundException("User not found."));
     }
 
-    public User findById (UUID id){
+    public User findById(UUID id) {
+
+        if (id == null) {
+            throw new InvalidUserDataException(
+                    "User id is required."
+            );
+        }
+
         return userRepository.findById(id)
-                .orElseThrow(() -> new UserNotFoundException("User not found."));
+                .orElseThrow(() ->
+                        new UserNotFoundException(
+                                "User not found."
+                        ));
     }
 
     public List<User> getAll () {
@@ -256,18 +303,25 @@ public class UserService {
 
     @PreAuthorize("hasAuthority('USER_ROLE_UPDATE')")
     public User updateUserRole(UUID userId, UserRole newRole) {
-        User currentUser = getCurrentUser();
-        User targetUser = findById(userId);
 
-        if (targetUser.getId().equals(currentUser.getId())) {
-            throw new UnauthorizedActionException(
-                    "Не можете да промените собствената си роля."
+        if (userId == null) {
+            throw new InvalidUserDataException(
+                    "User id is required."
             );
         }
 
         if (newRole == null) {
             throw new InvalidUserDataException(
                     "Ролята е задължителна."
+            );
+        }
+
+        User currentUser = getCurrentUser();
+        User targetUser = findById(userId);
+
+        if (targetUser.getId().equals(currentUser.getId())) {
+            throw new UnauthorizedActionException(
+                    "Не можете да промените собствената си роля."
             );
         }
 
@@ -295,11 +349,30 @@ public class UserService {
 
     @Transactional
     public boolean updateCurrentUserProfile(UpdateProfileRequest request) {
-        User user = getCurrentUser();
 
-        String normalizedEmail = request.getEmail()
-                .trim()
-                .toLowerCase(Locale.ROOT);
+        if (request == null) {
+            throw new InvalidUserDataException(
+                    "Profile update request is required."
+            );
+        }
+
+        String normalizedName =
+                normalizeAndValidateName(request.getName());
+
+        String normalizedEmail =
+                normalizeAndValidateEmail(request.getEmail());
+
+        validateCountryAndGender(
+                request.getCountry(),
+                request.getGender()
+        );
+
+        String normalizedProfilePicture =
+                normalizeAndValidateProfilePicture(
+                        request.getProfilePicture()
+                );
+
+        User user = getCurrentUser();
 
         boolean emailChanged =
                 !user.getEmail().equalsIgnoreCase(normalizedEmail);
@@ -314,28 +387,29 @@ public class UserService {
             );
         }
 
-        user.setName(request.getName().trim());
+        user.setName(normalizedName);
         user.setEmail(normalizedEmail);
         user.setCountry(request.getCountry());
         user.setGender(request.getGender());
 
-        String profilePicture = request.getProfilePicture();
-
-        String currentProfilePicture = user.getProfilePicture();
-
         boolean usesDefaultPicture =
-                profilePicture == null
-                        || profilePicture.isBlank()
-                        || currentProfilePicture == null
-                        || currentProfilePicture.equals("/images/default-avatar-man.png")
-                        || currentProfilePicture.equals("/images/default-avatar-woman.png");
+                normalizedProfilePicture.isBlank()
+                        || normalizedProfilePicture.equals(
+                        "/images/default-avatar-man.png"
+                )
+                        || normalizedProfilePicture.equals(
+                        "/images/default-avatar-woman.png"
+                );
+
+        String profilePicture;
 
         if (usesDefaultPicture) {
-            profilePicture = request.getGender() == Gender.MALE
-                    ? "/images/default-avatar-man.png"
-                    : "/images/default-avatar-woman.png";
+            profilePicture =
+                    request.getGender() == Gender.MALE
+                            ? "/images/default-avatar-man.png"
+                            : "/images/default-avatar-woman.png";
         } else {
-            profilePicture = profilePicture.trim();
+            profilePicture = normalizedProfilePicture;
         }
 
         user.setProfilePicture(profilePicture);
@@ -351,5 +425,107 @@ public class UserService {
         );
 
         return emailChanged;
+    }
+
+    private String normalizeAndValidateName(String name) {
+
+        if (name == null || name.isBlank()) {
+            throw new InvalidUserDataException(
+                    "User name is required."
+            );
+        }
+
+        String normalizedName = name.trim();
+
+        if (normalizedName.length() < 3
+                || normalizedName.length() > 50) {
+
+            throw new InvalidUserDataException(
+                    "User name must be between 3 and 50 symbols."
+            );
+        }
+
+        return normalizedName;
+    }
+
+    private String normalizeAndValidateEmail(String email) {
+
+        if (email == null || email.isBlank()) {
+            throw new InvalidUserDataException(
+                    "Email is required."
+            );
+        }
+
+        String normalizedEmail =
+                email.trim().toLowerCase(Locale.ROOT);
+
+        if (normalizedEmail.length() > 100) {
+            throw new InvalidUserDataException(
+                    "Email must be up to 100 symbols."
+            );
+        }
+
+        if (!EMAIL_PATTERN.matcher(normalizedEmail).matches()) {
+            throw new InvalidUserDataException(
+                    "Please enter a valid email address."
+            );
+        }
+
+        return normalizedEmail;
+    }
+
+    private void validatePassword(String password) {
+
+        if (password == null || password.isBlank()) {
+            throw new InvalidUserDataException(
+                    "Password is required."
+            );
+        }
+
+        if (password.length() < 6
+                || password.length() > 100) {
+
+            throw new InvalidUserDataException(
+                    "Password must be between 6 and 100 symbols."
+            );
+        }
+    }
+
+    private void validateCountryAndGender(
+            Country country,
+            Gender gender) {
+
+        validateCountry(country);
+
+        if (gender == null) {
+            throw new InvalidUserDataException(
+                    "Gender is required."
+            );
+        }
+    }
+
+    private String normalizeAndValidateProfilePicture(
+            String profilePicture) {
+
+        if (profilePicture == null) {
+            return "";
+        }
+
+        if (profilePicture.length() > 500) {
+            throw new InvalidUserDataException(
+                    "Profile picture URL must be up to 500 symbols."
+            );
+        }
+
+        return profilePicture.trim();
+    }
+
+    private void validateCountry(Country country) {
+
+        if (country == null) {
+            throw new InvalidUserDataException(
+                    "Country is required."
+            );
+        }
     }
 }

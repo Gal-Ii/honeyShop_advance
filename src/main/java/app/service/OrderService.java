@@ -14,6 +14,7 @@ import app.web.dto.order.OrderItemResponse;
 import app.web.dto.order.OrderResponse;
 import app.web.dto.order.UpdateOrderStatusRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,6 +39,14 @@ public class OrderService {
     }
 
     @Transactional
+    @CacheEvict(
+            cacheNames = {
+                    "activeProducts",
+                    "allProducts",
+                    "productsById"
+            },
+            allEntries = true
+    )
     public Order createOrder(User user) {
         if (user == null) {
             throw new UnauthorizedActionException("No logged user");
@@ -57,7 +66,7 @@ public class OrderService {
             validateCartItemForOrder(cartItem);
             Product product = cartItem.getProduct();
 
-            if(cartItem.getQuantity()>product.getItems()){
+            if (cartItem.getQuantity() > product.getItems()) {
                 throw new NotEnoughQuantityException("Not enough product quantity: " + product.getName());
             }
 

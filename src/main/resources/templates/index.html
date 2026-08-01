@@ -46,6 +46,10 @@
 
 <section class='section'>
     <div class='container'><h2 class='section-title'>Нашите продукти</h2>
+        <p class="error"
+           th:if="${cartError != null}"
+           th:text="${cartError}">
+        </p>
         <div class='products-grid'>
             <article class='product-card' th:each="product : ${products}">
                 <div class='tag'>Ново</div>

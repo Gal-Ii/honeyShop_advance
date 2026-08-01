@@ -9,7 +9,6 @@ import org.springframework.context.annotation.Configuration;
 @ConfigurationProperties(prefix = "users")
 public class UserProperties {
     private DefaultUser defaultUser;
-    private String testProperty;
 
     @Data
     public static class DefaultUser{

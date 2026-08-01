@@ -15,6 +15,9 @@ import app.exception.UserNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -26,6 +29,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import java.util.Optional;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -89,7 +93,7 @@ class UserServiceTest {
     @Test
     void registerShouldSaveMaleUserWhenRequestIsValid() {
         RegisterRequest request = RegisterRequest.builder()
-                .name("Ivan Ivanov")
+                .name(" Ivan Ivanov ")
                 .email("  IVAN@EXAMPLE.COM  ")
                 .password("password123")
                 .country(Country.BULGARIA)
@@ -226,6 +230,63 @@ class UserServiceTest {
         verifyNoInteractions(
                 userRepository,
                 passwordEncoder
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidDefaultAdminProperties")
+    void ensureDefaultAdminShouldRejectInvalidProperties(
+            String name,
+            String email,
+            String password,
+            Country country,
+            String expectedMessage) {
+
+        UserProperties.DefaultUser defaultUser = new UserProperties.DefaultUser();
+        defaultUser.setName(name);
+        defaultUser.setEmail(email);
+        defaultUser.setPassword(password);
+        defaultUser.setCountry(country);
+
+        InvalidUserDataException exception = assertThrows(
+                InvalidUserDataException.class,
+                () -> userService.ensureDefaultAdmin(defaultUser)
+        );
+
+        assertEquals(expectedMessage, exception.getMessage());
+        verifyNoInteractions(userRepository, passwordEncoder);
+    }
+
+    private static Stream<Arguments> invalidDefaultAdminProperties() {
+        return Stream.of(
+                Arguments.of(
+                        (String) null,
+                        "admin@example.com",
+                        "password123",
+                        Country.BULGARIA,
+                        "User name is required."
+                ),
+                Arguments.of(
+                        "Admin User",
+                        "invalid-email",
+                        "password123",
+                        Country.BULGARIA,
+                        "Please enter a valid email address."
+                ),
+                Arguments.of(
+                        "Admin User",
+                        "admin@example.com",
+                        (String) null,
+                        Country.BULGARIA,
+                        "Password is required."
+                ),
+                Arguments.of(
+                        "Admin User",
+                        "admin@example.com",
+                        "password123",
+                        (Country) null,
+                        "Country is required."
+                )
         );
     }
 
@@ -728,5 +789,385 @@ class UserServiceTest {
 
         verifyNoInteractions(passwordEncoder);
         verifyNoMoreInteractions(userRepository);
+    }
+
+    @Test
+    void updateCurrentUserProfileShouldReplaceDefaultPictureWithCustomUrl() {
+        String customPictureUrl =
+                "https://cdn.example.com/avatar.png";
+
+        UsernamePasswordAuthenticationToken authentication =
+                new UsernamePasswordAuthenticationToken(
+                        "user@example.com",
+                        "password",
+                        List.of()
+                );
+
+        SecurityContextHolder.getContext()
+                .setAuthentication(authentication);
+
+        User existingUser = User.builder()
+                .id(UUID.randomUUID())
+                .name("Old Name")
+                .email("user@example.com")
+                .country(Country.BULGARIA)
+                .gender(Gender.MALE)
+                .profilePicture(
+                        "/images/default-avatar-man.png"
+                )
+                .role(UserRole.USER)
+                .isActive(true)
+                .build();
+
+        UpdateProfileRequest request =
+                UpdateProfileRequest.builder()
+                        .name("Updated Name")
+                        .email("user@example.com")
+                        .country(Country.BULGARIA)
+                        .gender(Gender.MALE)
+                        .profilePicture(
+                                "  " + customPictureUrl + "  "
+                        )
+                        .build();
+
+        when(userRepository.findUserByEmail(
+                "user@example.com"
+        )).thenReturn(Optional.of(existingUser));
+
+        boolean emailChanged =
+                userService.updateCurrentUserProfile(request);
+
+        assertFalse(emailChanged);
+
+        assertEquals(
+                customPictureUrl,
+                existingUser.getProfilePicture()
+        );
+
+        assertNotNull(existingUser.getUpdatedOn());
+
+        verify(userRepository)
+                .findUserByEmail("user@example.com");
+
+        verify(userRepository).save(existingUser);
+
+        verifyNoInteractions(passwordEncoder);
+        verifyNoMoreInteractions(userRepository);
+    }
+
+    @Test
+    void findByIdShouldRejectNullId() {
+        InvalidUserDataException exception =
+                assertThrows(
+                        InvalidUserDataException.class,
+                        () -> userService.findById(null)
+                );
+
+        assertEquals(
+                "User id is required.",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(
+                userRepository,
+                passwordEncoder
+        );
+    }
+
+    @Test
+    void registerShouldRejectNullRequest() {
+        InvalidUserDataException exception =
+                assertThrows(
+                        InvalidUserDataException.class,
+                        () -> userService.register(null)
+                );
+
+        assertEquals(
+                "Registration request is required.",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(
+                userRepository,
+                passwordEncoder
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidRegistrationRequests")
+    void registerShouldRejectInvalidData(
+            String name,
+            String email,
+            String password,
+            Country country,
+            Gender gender,
+            String expectedMessage) {
+
+        RegisterRequest request =
+                RegisterRequest.builder()
+                        .name(name)
+                        .email(email)
+                        .password(password)
+                        .country(country)
+                        .gender(gender)
+                        .build();
+
+        InvalidUserDataException exception =
+                assertThrows(
+                        InvalidUserDataException.class,
+                        () -> userService.register(request)
+                );
+
+        assertEquals(
+                expectedMessage,
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(
+                userRepository,
+                passwordEncoder
+        );
+    }
+
+    private static Stream<Arguments>
+    invalidRegistrationRequests() {
+
+        return Stream.of(
+                Arguments.of(
+                        (String) null,
+                        "ivan@example.com",
+                        "password123",
+                        Country.BULGARIA,
+                        Gender.MALE,
+                        "User name is required."
+                ),
+                Arguments.of(
+                        "  ",
+                        "ivan@example.com",
+                        "password123",
+                        Country.BULGARIA,
+                        Gender.MALE,
+                        "User name is required."
+                ),
+                Arguments.of(
+                        "ab",
+                        "ivan@example.com",
+                        "password123",
+                        Country.BULGARIA,
+                        Gender.MALE,
+                        "User name must be between 3 and 50 symbols."
+                ),
+                Arguments.of(
+                        "a".repeat(51),
+                        "ivan@example.com",
+                        "password123",
+                        Country.BULGARIA,
+                        Gender.MALE,
+                        "User name must be between 3 and 50 symbols."
+                ),
+                Arguments.of(
+                        "Ivan Ivanov",
+                        (String) null,
+                        "password123",
+                        Country.BULGARIA,
+                        Gender.MALE,
+                        "Email is required."
+                ),
+                Arguments.of(
+                        "Ivan Ivanov",
+                        "invalid-email",
+                        "password123",
+                        Country.BULGARIA,
+                        Gender.MALE,
+                        "Please enter a valid email address."
+                ),
+                Arguments.of(
+                        "Ivan Ivanov",
+                        "a".repeat(90) + "@example.com",
+                        "password123",
+                        Country.BULGARIA,
+                        Gender.MALE,
+                        "Email must be up to 100 symbols."
+                ),
+                Arguments.of(
+                        "Ivan Ivanov",
+                        "ivan@example.com",
+                        (String) null,
+                        Country.BULGARIA,
+                        Gender.MALE,
+                        "Password is required."
+                ),
+                Arguments.of(
+                        "Ivan Ivanov",
+                        "ivan@example.com",
+                        "short",
+                        Country.BULGARIA,
+                        Gender.MALE,
+                        "Password must be between 6 and 100 symbols."
+                ),
+                Arguments.of(
+                        "Ivan Ivanov",
+                        "ivan@example.com",
+                        "a".repeat(101),
+                        Country.BULGARIA,
+                        Gender.MALE,
+                        "Password must be between 6 and 100 symbols."
+                ),
+                Arguments.of(
+                        "Ivan Ivanov",
+                        "ivan@example.com",
+                        "password123",
+                        (Country) null,
+                        Gender.MALE,
+                        "Country is required."
+                ),
+                Arguments.of(
+                        "Ivan Ivanov",
+                        "ivan@example.com",
+                        "password123",
+                        Country.BULGARIA,
+                        (Gender) null,
+                        "Gender is required."
+                )
+        );
+    }
+
+    @Test
+    void updateCurrentUserProfileShouldRejectNullRequest() {
+        InvalidUserDataException exception =
+                assertThrows(
+                        InvalidUserDataException.class,
+                        () -> userService
+                                .updateCurrentUserProfile(null)
+                );
+
+        assertEquals(
+                "Profile update request is required.",
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(
+                userRepository,
+                passwordEncoder
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidProfileUpdateRequests")
+    void updateCurrentUserProfileShouldRejectInvalidData(
+            String name,
+            String email,
+            Country country,
+            Gender gender,
+            String profilePicture,
+            String expectedMessage) {
+
+        UpdateProfileRequest request =
+                UpdateProfileRequest.builder()
+                        .name(name)
+                        .email(email)
+                        .country(country)
+                        .gender(gender)
+                        .profilePicture(profilePicture)
+                        .build();
+
+        InvalidUserDataException exception =
+                assertThrows(
+                        InvalidUserDataException.class,
+                        () -> userService
+                                .updateCurrentUserProfile(request)
+                );
+
+        assertEquals(
+                expectedMessage,
+                exception.getMessage()
+        );
+
+        verifyNoInteractions(
+                userRepository,
+                passwordEncoder
+        );
+    }
+
+    private static Stream<Arguments>
+    invalidProfileUpdateRequests() {
+
+        return Stream.of(
+                Arguments.of(
+                        (String) null,
+                        "user@example.com",
+                        Country.BULGARIA,
+                        Gender.MALE,
+                        "",
+                        "User name is required."
+                ),
+                Arguments.of(
+                        "Ivan Ivanov",
+                        "invalid-email",
+                        Country.BULGARIA,
+                        Gender.MALE,
+                        "",
+                        "Please enter a valid email address."
+                ),
+                Arguments.of(
+                        "Ivan Ivanov",
+                        "user@example.com",
+                        (Country) null,
+                        Gender.MALE,
+                        "",
+                        "Country is required."
+                ),
+                Arguments.of(
+                        "Ivan Ivanov",
+                        "user@example.com",
+                        Country.BULGARIA,
+                        (Gender) null,
+                        "",
+                        "Gender is required."
+                ),
+                Arguments.of(
+                        "Ivan Ivanov",
+                        "user@example.com",
+                        Country.BULGARIA,
+                        Gender.MALE,
+                        "a".repeat(501),
+                        "Profile picture URL must be up to 500 symbols."
+                )
+        );
+    }
+
+    @ParameterizedTest
+    @MethodSource("invalidRoleUpdateArguments")
+    void updateUserRoleShouldRejectInvalidArguments(
+            UUID userId,
+            UserRole newRole,
+            String expectedMessage) {
+
+        InvalidUserDataException exception = assertThrows(
+                InvalidUserDataException.class,
+                () -> userService.updateUserRole(userId, newRole)
+        );
+
+        assertEquals(expectedMessage, exception.getMessage());
+
+        verifyNoInteractions(
+                userRepository,
+                passwordEncoder
+        );
+    }
+
+    private static Stream<Arguments> invalidRoleUpdateArguments() {
+        return Stream.of(
+                Arguments.of(
+                        (UUID) null,
+                        UserRole.USER,
+                        "User id is required."
+                ),
+                Arguments.of(
+                        UUID.randomUUID(),
+                        (UserRole) null,
+                        "Ролята е задължителна."
+                )
+        );
     }
 }

@@ -1,5 +1,7 @@
 package app.web.controller;
 
+import app.model.entity.user.User;
+import app.service.CartService;
 import app.service.UserService;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -7,9 +9,11 @@ import org.springframework.web.bind.annotation.ModelAttribute;
 @ControllerAdvice
 public class GlobalModelAttributes {
     private final UserService userService;
+    private final CartService cartService;
 
-    public GlobalModelAttributes(UserService userService) {
+    public GlobalModelAttributes(UserService userService, CartService cartService) {
         this.userService = userService;
+        this.cartService = cartService;
     }
 
     @ModelAttribute("hasAdminPermission")
@@ -18,8 +22,19 @@ public class GlobalModelAttributes {
     }
 
     @ModelAttribute("isLoggedIn")
-    public boolean isLoggedIn(){
+    public boolean isLoggedIn() {
         return userService.isLoggedIn();
+    }
+
+    @ModelAttribute("cartItemCount")
+    public long cartItemCount() {
+        if (!userService.isLoggedIn()) {
+            return 0L;
+        }
+
+        User currentUser = userService.getCurrentUser();
+
+        return cartService.getCartItemCount(currentUser);
     }
 
     @ModelAttribute("canManageProducts")

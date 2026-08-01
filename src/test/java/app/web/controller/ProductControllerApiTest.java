@@ -1,8 +1,9 @@
 package app.web.controller;
 
 import app.config.WebMvcConfiguration;
-import app.model.entity.user.User;
 import app.model.entity.product.Product;
+import app.model.entity.user.User;
+import app.service.CartService;
 import app.service.ProductService;
 import app.service.ReviewService;
 import app.service.UserService;
@@ -11,26 +12,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import static org.mockito.ArgumentMatchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import org.springframework.test.context.ActiveProfiles;
-
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
-import java.math.BigDecimal;
 
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.never;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.model;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.view;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.redirectedUrl;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ProductController.class)
 @Import(WebMvcConfiguration.class)
@@ -48,6 +43,9 @@ class ProductControllerApiTest {
 
     @MockitoBean
     private ReviewService reviewService;
+
+    @MockitoBean
+    private CartService cartService;
 
     @Test
     @WithMockUser(authorities = "PRODUCT_CREATE")

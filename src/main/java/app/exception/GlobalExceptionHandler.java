@@ -13,13 +13,19 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 @Slf4j
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(ProductNotFoundException.class)
-    public ModelAndView handleProductNotFound(
-            ProductNotFoundException exception) {
+    @ExceptionHandler({
+            ProductNotFoundException.class,
+            UserNotFoundException.class,
+            ReviewNotFoundException.class
+    })
+    public ModelAndView handleNotFound(
+            RuntimeException exception) {
 
-        ModelAndView modelAndView = new ModelAndView("error/404");
+        ModelAndView modelAndView =
+                new ModelAndView("error/404");
 
         modelAndView.setStatus(HttpStatus.NOT_FOUND);
+
         modelAndView.addObject(
                 "errorMessage",
                 exception.getMessage()
@@ -71,6 +77,72 @@ public class GlobalExceptionHandler {
         modelAndView.addObject(
                 "errorMessage",
                 "The requested resource was not found."
+        );
+
+        return modelAndView;
+    }
+
+    @ExceptionHandler({
+            InvalidCartDataException.class,
+            InvalidOrderDataException.class,
+            InvalidProductDataException.class,
+            InvalidReviewDataException.class,
+            InvalidUserDataException.class
+    })
+    public ModelAndView handleInvalidOperation(
+            RuntimeException exception) {
+
+        ModelAndView modelAndView =
+                new ModelAndView("error/400");
+
+        modelAndView.setStatus(HttpStatus.BAD_REQUEST);
+
+        modelAndView.addObject(
+                "errorMessage",
+                exception.getMessage()
+        );
+
+        return modelAndView;
+    }
+
+    @ExceptionHandler({
+            NotEnoughQuantityException.class,
+            ProductAlreadyExistsException.class,
+            ReviewAlreadyExistsException.class,
+            UserAlreadyExistsException.class
+    })
+    public ModelAndView handleConflict(
+            RuntimeException exception) {
+
+        ModelAndView modelAndView =
+                new ModelAndView("error/409");
+
+        modelAndView.setStatus(HttpStatus.CONFLICT);
+
+        modelAndView.addObject(
+                "errorMessage",
+                exception.getMessage()
+        );
+
+        return modelAndView;
+    }
+
+    @ExceptionHandler(
+            ReviewServiceUnavailableException.class
+    )
+    public ModelAndView handleReviewServiceUnavailable(
+            ReviewServiceUnavailableException exception) {
+
+        ModelAndView modelAndView =
+                new ModelAndView("error/503");
+
+        modelAndView.setStatus(
+                HttpStatus.SERVICE_UNAVAILABLE
+        );
+
+        modelAndView.addObject(
+                "errorMessage",
+                exception.getMessage()
         );
 
         return modelAndView;

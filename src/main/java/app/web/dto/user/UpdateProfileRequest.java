@@ -21,8 +21,12 @@ public class UpdateProfileRequest {
     @Size(min = 3, max = 50, message = "Name must be between 3 and 50 symbols.")
     private String name;
 
-    @NotBlank
+    @NotBlank(message = "Email is required.")
     @Email(message = "Please enter a valid email address.")
+    @Size(
+            max = 100,
+            message = "Email must be up to 100 symbols."
+    )
     private String email;
 
     @NotNull(message = "Моля, изберете държава.")
